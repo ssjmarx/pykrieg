@@ -8,30 +8,26 @@ __version__ = "0.1.2"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 
-from . import board
-from . import constants
-from . import fen
-from . import types
-from . import movement
+from . import board, constants, fen, movement, types
 from .board import Board
 from .fen import Fen
+from .movement import (
+    can_move,
+    execute_move,
+    generate_moves,
+    get_movement_range,
+    is_valid_move,
+)
 from .pieces import (
-    Unit,
-    Infantry,
-    Cavalry,
-    Cannon,
     Arsenal,
+    Cannon,
+    Cavalry,
+    Infantry,
     Relay,
     SwiftCannon,
     SwiftRelay,
+    Unit,
     create_piece,
-)
-from .movement import (
-    generate_moves,
-    is_valid_move,
-    execute_move,
-    get_movement_range,
-    can_move,
 )
 
 __all__ = [

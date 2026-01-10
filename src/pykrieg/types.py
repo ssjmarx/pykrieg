@@ -4,18 +4,18 @@ This module contains type hints and TypedDict classes used throughout
 the Pykrieg game implementation for better code clarity and type safety.
 """
 
-from typing import TYPE_CHECKING, TypedDict, Tuple, Optional, List
+from typing import TYPE_CHECKING, List, Optional, Tuple, TypedDict
 
 if TYPE_CHECKING:
-    from .pieces import Unit
+    pass
 
 
 class Piece(TypedDict, total=False):
     """Represents a piece on the board (for backward compatibility).
-    
+
     This is kept for backward compatibility with existing code.
     New code should use Unit objects directly.
-    
+
     Attributes:
         type: The unit type (e.g., 'INFANTRY', 'CAVALRY')
         owner: The player who owns the piece ('NORTH' or 'SOUTH')

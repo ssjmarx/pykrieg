@@ -1,6 +1,5 @@
 """Test constants module."""
 
-import pytest
 from pykrieg import constants
 
 

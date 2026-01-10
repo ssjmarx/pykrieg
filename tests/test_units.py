@@ -11,19 +11,19 @@ Tests cover all 7 unit types with correct statistics from official rules:
 """
 
 import pytest
+
+from pykrieg.board import Board
 from pykrieg.pieces import (
-    Unit,
-    Infantry,
-    Cavalry,
-    Cannon,
     Arsenal,
+    Cannon,
+    Cavalry,
+    Infantry,
     Relay,
     SwiftCannon,
     SwiftRelay,
+    Unit,
     create_piece,
 )
-from pykrieg.board import Board
-
 
 # =============================================================================
 # Unit Attribute Tests
@@ -122,7 +122,7 @@ def test_stats_immutability():
     # Setting an instance attribute creates a shadow, but doesn't affect class
     assert Infantry.attack == 4
     assert unit.attack == 4
-    
+
     # Setting on instance creates instance attribute
     unit.attack = 99
     assert unit.attack == 99
@@ -208,7 +208,7 @@ def test_unit_equality_with_non_unit():
     """Test unit is not equal to non-unit objects."""
     unit = Infantry("NORTH")
     assert unit != "INFANTRY"
-    assert unit != None
+    assert unit is not None
 
 
 def test_unit_hash():
@@ -216,10 +216,10 @@ def test_unit_hash():
     unit1 = Infantry("NORTH")
     unit2 = Infantry("NORTH")
     unit3 = Cavalry("NORTH")
-    
+
     # Same units should have same hash
     assert hash(unit1) == hash(unit2)
-    
+
     # Different units should have different hashes (usually)
     # Note: Hash collisions are possible but unlikely
     units_set = {unit1, unit2, unit3}
@@ -234,7 +234,7 @@ def test_unit_repr():
     """Test unit string representation."""
     unit = Infantry("NORTH")
     assert repr(unit) == "INFANTRY(NORTH)"
-    
+
     unit = Cavalry("SOUTH")
     assert repr(unit) == "CAVALRY(SOUTH)"
 
@@ -264,10 +264,10 @@ def test_place_unit_overwrite():
     board = Board()
     unit1 = Infantry("NORTH")
     unit2 = Cavalry("NORTH")
-    
+
     board.place_unit(5, 10, unit1)
     assert board.get_unit(5, 10) == unit1
-    
+
     board.place_unit(5, 10, unit2)
     assert board.get_unit(5, 10) == unit2
 
@@ -276,7 +276,7 @@ def test_create_and_place_unit():
     """Test create_and_place_unit convenience method."""
     board = Board()
     unit = board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
-    
+
     assert unit.unit_type == "INFANTRY"
     assert unit.owner == "NORTH"
     assert board.get_unit(5, 10) == unit
@@ -295,7 +295,7 @@ def test_clear_unit():
     unit = Infantry("NORTH")
     board.place_unit(5, 10, unit)
     assert board.get_unit(5, 10) == unit
-    
+
     board.clear_square(5, 10)
     assert board.get_unit(5, 10) is None
 
@@ -309,7 +309,7 @@ def test_get_unit():
     board = Board()
     unit = Infantry("NORTH")
     board.place_unit(5, 10, unit)
-    
+
     retrieved_unit = board.get_unit(5, 10)
     assert retrieved_unit == unit
     assert retrieved_unit is not None
@@ -325,7 +325,7 @@ def test_get_unit_type():
     """Test get_unit_type returns correct string."""
     board = Board()
     board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
-    
+
     assert board.get_unit_type(5, 10) == "INFANTRY"
     assert board.get_unit_type(0, 0) is None
 
@@ -334,7 +334,7 @@ def test_get_unit_owner():
     """Test get_unit_owner returns correct owner."""
     board = Board()
     board.create_and_place_unit(5, 10, "CAVALRY", "SOUTH")
-    
+
     assert board.get_unit_owner(5, 10) == "SOUTH"
     assert board.get_unit_owner(0, 0) is None
 
@@ -345,7 +345,7 @@ def test_count_units_all():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     assert board.count_units() == 3
 
 
@@ -355,7 +355,7 @@ def test_count_units_by_type():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     assert board.count_units(unit_type="INFANTRY") == 2
     assert board.count_units(unit_type="CAVALRY") == 1
     assert board.count_units(unit_type="CANNON") == 0
@@ -367,7 +367,7 @@ def test_count_units_by_owner():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     assert board.count_units(owner="NORTH") == 2
     assert board.count_units(owner="SOUTH") == 1
 
@@ -378,7 +378,7 @@ def test_count_units_by_type_and_owner():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     assert board.count_units(unit_type="INFANTRY", owner="NORTH") == 1
     assert board.count_units(unit_type="INFANTRY", owner="SOUTH") == 1
     assert board.count_units(unit_type="CAVALRY", owner="NORTH") == 1
@@ -390,10 +390,10 @@ def test_get_units_by_type():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     infantry = board.get_units_by_type("INFANTRY")
     assert set(infantry) == {(0, 0), (1, 0)}
-    
+
     cavalry = board.get_units_by_type("CAVALRY")
     assert cavalry == [(0, 1)]
 
@@ -404,10 +404,10 @@ def test_get_units_by_owner():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     north_units = board.get_units_by_owner("NORTH")
     assert set(north_units) == {(0, 0), (0, 1)}
-    
+
     south_units = board.get_units_by_owner("SOUTH")
     assert south_units == [(1, 0)]
 
@@ -418,13 +418,13 @@ def test_get_all_units():
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(0, 1, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "SOUTH")
-    
+
     all_units = board.get_all_units()
     assert len(all_units) == 3
     assert (0, 0) in all_units
     assert (0, 1) in all_units
     assert (1, 0) in all_units
-    
+
     assert all_units[(0, 0)].unit_type == "INFANTRY"
     assert all_units[(0, 1)].unit_type == "CAVALRY"
 
@@ -436,7 +436,7 @@ def test_get_all_units():
 def test_is_valid_unit_type():
     """Test unit type validation."""
     board = Board()
-    
+
     assert board.is_valid_unit_type("INFANTRY") is True
     assert board.is_valid_unit_type("CAVALRY") is True
     assert board.is_valid_unit_type("CANNON") is True
@@ -450,7 +450,7 @@ def test_is_valid_unit_type():
 def test_is_valid_owner():
     """Test owner validation."""
     board = Board()
-    
+
     assert board.is_valid_owner("NORTH") is True
     assert board.is_valid_owner("SOUTH") is True
     assert board.is_valid_owner("EAST") is False
@@ -464,7 +464,7 @@ def test_is_valid_owner():
 def test_full_board_setup():
     """Test setting up a board with multiple units."""
     board = Board()
-    
+
     # Place various units
     board.create_and_place_unit(0, 0, "ARSENAL", "NORTH")
     board.create_and_place_unit(0, 5, "RELAY", "NORTH")
@@ -472,14 +472,14 @@ def test_full_board_setup():
     board.create_and_place_unit(1, 1, "INFANTRY", "NORTH")
     board.create_and_place_unit(1, 2, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 3, "CANNON", "NORTH")
-    
+
     board.create_and_place_unit(19, 0, "ARSENAL", "SOUTH")
     board.create_and_place_unit(19, 5, "RELAY", "SOUTH")
     board.create_and_place_unit(18, 0, "INFANTRY", "SOUTH")
     board.create_and_place_unit(18, 1, "INFANTRY", "SOUTH")
     board.create_and_place_unit(18, 2, "CAVALRY", "SOUTH")
     board.create_and_place_unit(18, 3, "CANNON", "SOUTH")
-    
+
     # Verify counts
     assert board.count_units(owner="NORTH") == 6
     assert board.count_units(owner="SOUTH") == 6
@@ -493,15 +493,15 @@ def test_full_board_setup():
 def test_swift_units_integration():
     """Test swift units in board setup."""
     board = Board()
-    
+
     board.create_and_place_unit(0, 10, "SWIFT_CANNON", "NORTH")
     board.create_and_place_unit(1, 10, "SWIFT_RELAY", "NORTH")
-    
+
     # Verify swift units are correctly placed
     swift_cannon = board.get_unit(0, 10)
     assert swift_cannon.unit_type == "SWIFT_CANNON"
     assert swift_cannon.movement == 2
-    
+
     swift_relay = board.get_unit(1, 10)
     assert swift_relay.unit_type == "SWIFT_RELAY"
     assert swift_relay.movement == 2
@@ -515,13 +515,13 @@ def test_swift_units_integration():
 def test_units_at_board_corners():
     """Test units placed at all four corners of the board."""
     board = Board()
-    
+
     # Place units at all corners
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")      # Top-left
     board.create_and_place_unit(0, 24, "CAVALRY", "NORTH")      # Top-right
     board.create_and_place_unit(19, 0, "INFANTRY", "SOUTH")     # Bottom-left
     board.create_and_place_unit(19, 24, "CAVALRY", "SOUTH")     # Bottom-right
-    
+
     # Verify all units are placed correctly
     assert board.get_unit(0, 0).unit_type == "INFANTRY"
     assert board.get_unit(0, 24).unit_type == "CAVALRY"
@@ -532,11 +532,11 @@ def test_units_at_board_corners():
 def test_units_at_territory_boundary():
     """Test units placed at territory boundary rows."""
     board = Board()
-    
+
     # Place units at boundary rows (9 and 10)
     board.create_and_place_unit(9, 0, "INFANTRY", "NORTH")      # Last row of North
     board.create_and_place_unit(10, 0, "INFANTRY", "SOUTH")     # First row of South
-    
+
     # Verify territory classification
     assert board.get_territory(9, 0) == "NORTH"
     assert board.get_territory(10, 0) == "SOUTH"
@@ -545,11 +545,11 @@ def test_units_at_territory_boundary():
 def test_place_unit_full_row():
     """Test placing units on every square of a row."""
     board = Board()
-    
+
     # Fill an entire row with units
     for col in range(board.cols):
         board.create_and_place_unit(5, col, "INFANTRY", "NORTH")
-    
+
     # Verify all squares in row 5 have units
     for col in range(board.cols):
         assert board.get_unit(5, col) is not None
@@ -559,11 +559,11 @@ def test_place_unit_full_row():
 def test_place_unit_full_column():
     """Test placing units on every square of a column."""
     board = Board()
-    
+
     # Fill an entire column with units
     for row in range(board.rows):
         board.create_and_place_unit(row, 10, "CAVALRY", "SOUTH")
-    
+
     # Verify all squares in column 10 have units
     for row in range(board.rows):
         assert board.get_unit(row, 10) is not None
@@ -573,12 +573,12 @@ def test_place_unit_full_column():
 def test_board_with_maximum_units():
     """Test board with maximum number of units (500 units)."""
     board = Board()
-    
+
     # Fill entire board with units
     for row in range(board.rows):
         for col in range(board.cols):
             board.create_and_place_unit(row, col, "INFANTRY", "NORTH")
-    
+
     # Verify all squares have units
     assert board.count_units() == 500
     assert board.count_units(unit_type="INFANTRY") == 500
@@ -587,14 +587,14 @@ def test_board_with_maximum_units():
 def test_board_with_all_unit_types():
     """Test board with all 7 unit types placed simultaneously."""
     board = Board()
-    
-    unit_types = ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", 
+
+    unit_types = ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL",
                   "RELAY", "SWIFT_CANNON", "SWIFT_RELAY"]
-    
+
     # Place one of each unit type
     for i, unit_type in enumerate(unit_types):
         board.create_and_place_unit(0, i, unit_type, "NORTH")
-    
+
     # Verify all unit types are present
     for unit_type in unit_types:
         assert board.count_units(unit_type=unit_type) == 1
@@ -603,7 +603,7 @@ def test_board_with_all_unit_types():
 def test_empty_board_queries():
     """Test query methods on empty board."""
     board = Board()
-    
+
     # All query methods should return empty/None on empty board
     assert board.count_units() == 0
     assert board.get_units_by_type("INFANTRY") == []
@@ -617,11 +617,11 @@ def test_empty_board_queries():
 def test_board_with_single_unit_type():
     """Test board with units of only one type."""
     board = Board()
-    
+
     # Place multiple units of same type
     for i in range(10):
         board.create_and_place_unit(0, i, "INFANTRY", "NORTH")
-    
+
     # Verify counts
     assert board.count_units() == 10
     assert board.count_units(unit_type="INFANTRY") == 10
@@ -631,11 +631,11 @@ def test_board_with_single_unit_type():
 def test_board_with_single_owner():
     """Test board with units owned by only one player."""
     board = Board()
-    
+
     # Place units for only North player
     for i in range(10):
         board.create_and_place_unit(0, i, "INFANTRY", "NORTH")
-    
+
     # Verify counts
     assert board.count_units() == 10
     assert board.count_units(owner="NORTH") == 10
@@ -651,7 +651,7 @@ def test_unit_with_invalid_values():
     # Direct instantiation doesn't validate (intentional)
     unit = Infantry("DRAGON")
     assert unit.owner == "DRAGON"
-    
+
     unit = Cavalry("")
     assert unit.owner == ""
 
@@ -661,11 +661,11 @@ def test_factory_case_sensitivity():
     # Valid uppercase should work
     unit = create_piece("INFANTRY", "NORTH")
     assert unit.unit_type == "INFANTRY"
-    
+
     # Lowercase should fail
     with pytest.raises(ValueError, match="Invalid unit type"):
         create_piece("infantry", "NORTH")
-    
+
     # Mixed case should fail
     with pytest.raises(ValueError, match="Invalid unit type"):
         create_piece("Infantry", "NORTH")
@@ -676,11 +676,11 @@ def test_factory_case_sensitivity_owner():
     # Valid uppercase should work
     unit = create_piece("INFANTRY", "NORTH")
     assert unit.owner == "NORTH"
-    
+
     # Lowercase should fail
     with pytest.raises(ValueError, match="Invalid owner"):
         create_piece("INFANTRY", "north")
-    
+
     # Mixed case should fail
     with pytest.raises(ValueError, match="Invalid owner"):
         create_piece("INFANTRY", "North")
@@ -710,7 +710,7 @@ def test_get_units_by_type_nonexistent():
     """Test get_units_by_type returns empty list for non-existent type."""
     board = Board()
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
-    
+
     # Non-existent type should return empty list, not error
     dragons = board.get_units_by_type("DRAGON")
     assert dragons == []
@@ -720,7 +720,7 @@ def test_get_units_by_owner_invalid():
     """Test get_units_by_owner returns empty list for invalid owner."""
     board = Board()
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
-    
+
     # Invalid owner should return empty list, not error
     dragons = board.get_units_by_owner("EAST")
     assert dragons == []
@@ -730,7 +730,7 @@ def test_count_units_empty_string_filters():
     """Test count_units handles empty string as filter."""
     board = Board()
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
-    
+
     # Empty string should match nothing (not count all)
     assert board.count_units(unit_type="") == 0
     assert board.count_units(owner="") == 0
@@ -743,11 +743,11 @@ def test_count_units_empty_string_filters():
 def test_overwrite_same_type_different_owner():
     """Test overwriting unit with same type but different owner."""
     board = Board()
-    
+
     # Place North infantry
     board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
     assert board.get_unit_owner(5, 10) == "NORTH"
-    
+
     # Overwrite with South infantry
     board.create_and_place_unit(5, 10, "INFANTRY", "SOUTH")
     assert board.get_unit_owner(5, 10) == "SOUTH"
@@ -756,11 +756,11 @@ def test_overwrite_same_type_different_owner():
 def test_overwrite_structure_with_mobile():
     """Test overwriting structure with mobile unit."""
     board = Board()
-    
+
     # Place structure
     board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
     assert board.get_unit(5, 10).is_structure() is True
-    
+
     # Overwrite with mobile unit
     board.create_and_place_unit(5, 10, "CAVALRY", "NORTH")
     assert board.get_unit(5, 10).is_structure() is False
@@ -769,11 +769,11 @@ def test_overwrite_structure_with_mobile():
 def test_overwrite_mobile_with_structure():
     """Test overwriting mobile unit with structure."""
     board = Board()
-    
+
     # Place mobile unit
     board.create_and_place_unit(5, 10, "CAVALRY", "NORTH")
     assert board.get_unit(5, 10).is_structure() is False
-    
+
     # Overwrite with structure
     board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
     assert board.get_unit(5, 10).is_structure() is True
@@ -782,9 +782,9 @@ def test_overwrite_mobile_with_structure():
 def test_multiple_overwrites_sequence():
     """Test multiple overwrites in sequence."""
     board = Board()
-    
+
     unit_types = ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY"]
-    
+
     for unit_type in unit_types:
         board.create_and_place_unit(5, 10, unit_type, "NORTH")
         assert board.get_unit_type(5, 10) == unit_type
@@ -793,11 +793,11 @@ def test_multiple_overwrites_sequence():
 def test_overwrite_updates_counts():
     """Test that overwriting updates unit counts correctly."""
     board = Board()
-    
+
     # Place infantry
     board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
     assert board.count_units(unit_type="INFANTRY") == 1
-    
+
     # Overwrite with cavalry
     board.create_and_place_unit(0, 0, "CAVALRY", "NORTH")
     assert board.count_units(unit_type="INFANTRY") == 0
@@ -812,7 +812,7 @@ def test_stats_are_class_attributes():
     """Test that stats are class attributes, not instance attributes."""
     unit1 = Infantry("NORTH")
     unit2 = Infantry("SOUTH")
-    
+
     # Stats should be shared across instances
     assert unit1.attack is Infantry.attack
     assert unit2.attack is Infantry.attack
@@ -822,7 +822,7 @@ def test_unit_stats_independent_per_class():
     """Test that stats are independent per unit class."""
     infantry = Infantry("NORTH")
     cavalry = Cavalry("NORTH")
-    
+
     # Stats should be different between classes (defense differs)
     assert infantry.attack == cavalry.attack  # Both have attack 4
     assert infantry.defense != cavalry.defense  # Infantry 6, Cavalry 5
@@ -834,7 +834,8 @@ def test_unit_stats_independent_per_class():
 # =============================================================================
 
 hypothesis = pytest.importorskip("hypothesis", reason="requires hypothesis>=6.0.0")
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 
 @given(st.integers(0, 19), st.integers(0, 24))
@@ -842,10 +843,10 @@ def test_place_and_retrieve(row, col):
     """Test that placed units can be retrieved correctly."""
     board = Board()
     unit = Infantry("NORTH")
-    
+
     board.place_unit(row, col, unit)
     retrieved = board.get_unit(row, col)
-    
+
     assert retrieved == unit
     assert retrieved.unit_type == "INFANTRY"
 
@@ -860,11 +861,11 @@ def test_place_and_retrieve(row, col):
 def test_count_units_invariant(units_to_place):
     """Test that count_units invariant holds for random placements."""
     board = Board()
-    
+
     # Place units (handle collisions - later placements overwrite earlier)
     for row, col, unit_type, owner in units_to_place:
         board.create_and_place_unit(row, col, unit_type, owner)
-    
+
     # Verify total count matches all individual type counts
     total = board.count_units()
     type_counts = sum(
@@ -872,7 +873,7 @@ def test_count_units_invariant(units_to_place):
         for ut in ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY",
                   "SWIFT_CANNON", "SWIFT_RELAY"]
     )
-    
+
     assert total == type_counts
 
 
@@ -881,19 +882,19 @@ def test_count_units_invariant(units_to_place):
 def test_unit_territory_placement(row, col, owner):
     """Test that territory classification works correctly."""
     board = Board()
-    
+
     # Place unit and check territory classification
     board.create_and_place_unit(row, col, "INFANTRY", owner)
     unit = board.get_unit(row, col)
     territory = board.get_territory(row, col)
-    
+
     # Verify territory is either NORTH or SOUTH
     assert territory in ["NORTH", "SOUTH"]
-    
+
     # Verify unit was placed
     assert unit is not None
     assert unit.owner == owner
-    
+
     # Verify territory boundary is at row 10
     if row < 10:
         assert territory == "NORTH"
@@ -911,23 +912,23 @@ def test_unit_territory_placement(row, col, owner):
 def test_unit_creation_and_properties(unit_type, owner):
     """Test that units created via factory have correct properties."""
     unit = create_piece(unit_type, owner)
-    
+
     # Verify basic properties
     assert unit.unit_type == unit_type
     assert unit.owner == owner
-    
+
     # Verify stats are integers (or None for range)
     assert isinstance(unit.attack, int)
     assert isinstance(unit.defense, int)
     assert isinstance(unit.movement, int)
     assert unit.range is None or isinstance(unit.range, int)
-    
+
     # Verify combat vs structure classification
     if unit.attack > 0:
         assert unit.is_combat_unit() is True
     else:
         assert unit.is_combat_unit() is False
-    
+
     if unit.movement == 0:
         assert unit.is_structure() is True
     else:
@@ -938,20 +939,20 @@ def test_unit_creation_and_properties(unit_type, owner):
 def test_clear_and_place_invariant(row, col):
     """Test that clearing and placing units maintains invariants."""
     board = Board()
-    
+
     # Initially empty
     assert board.get_unit(row, col) is None
-    
+
     # Place unit
     board.create_and_place_unit(row, col, "INFANTRY", "NORTH")
     assert board.get_unit(row, col) is not None
     assert board.get_unit_type(row, col) == "INFANTRY"
-    
+
     # Clear unit
     board.clear_square(row, col)
     assert board.get_unit(row, col) is None
     assert board.get_unit_type(row, col) is None
-    
+
     # Place again
     board.create_and_place_unit(row, col, "CAVALRY", "SOUTH")
     assert board.get_unit(row, col) is not None
@@ -965,15 +966,15 @@ def test_clear_and_place_invariant(row, col):
 def test_get_all_units_accuracy(coordinates):
     """Test that get_all_units returns accurate mapping."""
     board = Board()
-    
+
     # Place units at specified coordinates
     for i, (row, col) in enumerate(coordinates):
         unit_type = ["INFANTRY", "CAVALRY", "CANNON"][i % 3]
         board.create_and_place_unit(row, col, unit_type, "NORTH")
-    
+
     # Get all units
     all_units = board.get_all_units()
-    
+
     # Verify each returned unit
     for (row, col), unit in all_units.items():
         retrieved = board.get_unit(row, col)
@@ -986,17 +987,17 @@ def test_get_all_units_accuracy(coordinates):
 def test_overwrite_invariant(row, col):
     """Test that overwriting units maintains correct state."""
     board = Board()
-    
+
     # Place first unit
     board.create_and_place_unit(row, col, "INFANTRY", "NORTH")
     assert board.count_units(unit_type="INFANTRY") == 1
     assert board.count_units(unit_type="CAVALRY") == 0
-    
+
     # Overwrite with different unit type
     board.create_and_place_unit(row, col, "CAVALRY", "SOUTH")
     assert board.count_units(unit_type="INFANTRY") == 0
     assert board.count_units(unit_type="CAVALRY") == 1
-    
+
     # Overwrite with same type, different owner
     board.create_and_place_unit(row, col, "CAVALRY", "NORTH")
     assert board.get_unit_owner(row, col) == "NORTH"

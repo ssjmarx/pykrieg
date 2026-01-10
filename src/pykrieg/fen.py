@@ -35,22 +35,22 @@ class Fen:
     Example FEN:
     ___________________________/.../_________________________/N/M/[]
     """
-    
+
     # Use piece symbols from constants
     PIECE_SYMBOLS = constants.FEN_SYMBOLS
     SYMBOL_TO_PIECE = constants.SYMBOL_TO_UNIT
-    
+
     @staticmethod
     def board_to_fen(board):
         """
         Convert Board object to FEN string (0.1.0 basic version).
-        
+
         Args:
             board: Board object
-        
+
         Returns:
             FEN string representation
-        
+
         Example:
             Empty board: "_________________________/.../N/M/[]"
         """
@@ -69,61 +69,61 @@ class Fen:
                         symbol = symbol.lower()
                     row_fen.append(symbol)
             rows_fen.append(''.join(row_fen))
-        
+
         board_data = '/'.join(rows_fen)
-        
+
         # Build turn info
         turn_char = 'N' if board.turn == constants.PLAYER_NORTH else 'S'
-        
+
         # For 0.1.0, use default values
         phase = constants.PHASE_MOVEMENT  # Movement phase
         actions = '[]'  # No actions in 0.1.0
-        
+
         # Assemble FEN
         fen = f"{board_data}/{turn_char}/{phase}/{actions}"
         return fen
-    
+
     @staticmethod
     def fen_to_board(fen_string):
         """
         Convert FEN string to Board object (0.1.0 basic version).
-        
+
         Args:
             fen_string: FEN string
-        
+
         Returns:
             Board object
-        
+
         Example:
             "_________________________/.../N/M/[]" -> Board
         """
         if not isinstance(fen_string, str):
             raise TypeError(f"FEN must be string, got {type(fen_string)}")
-        
+
         parts = fen_string.split('/')
         if len(parts) != 23:  # 20 rows + 3 metadata fields
             raise ValueError(f"Invalid FEN: expected 23 parts, got {len(parts)}")
-        
+
         # Parse board data (first 20 parts)
         board_data = parts[:20]
         turn_char = parts[20]
         # phase = parts[21]  # Not used in 0.1.0
         # actions = parts[22]  # Not used in 0.1.0
-        
+
         # Create board
         from .board import Board
         board = Board()
-        
+
         # Set turn
         if turn_char not in ['N', 'S']:
             raise ValueError(f"Invalid turn character: {turn_char}")
         board._turn = constants.PLAYER_NORTH if turn_char == 'N' else constants.PLAYER_SOUTH
-        
+
         # Parse board rows
         for row, row_data in enumerate(board_data):
             if len(row_data) != 25:
                 raise ValueError(f"Invalid FEN row {row}: expected 25 chars, got {len(row_data)}")
-            
+
             for col, char in enumerate(row_data):
                 if char == '_':
                     board.clear_square(row, col)
@@ -131,17 +131,17 @@ class Fen:
                     # Determine piece type and owner
                     is_south = char.islower()
                     symbol = char.upper()
-                    
+
                     if symbol not in Fen.SYMBOL_TO_PIECE:
                         raise ValueError(f"Invalid piece symbol: {symbol}")
-                    
+
                     piece_type = Fen.SYMBOL_TO_PIECE[symbol]
                     owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
-                    
+
                     piece = {
                         'type': piece_type,
                         'owner': owner
                     }
                     board.set_piece(row, col, piece)
-        
+
         return board

@@ -15,82 +15,83 @@ Unit Statistics:
 """
 
 from typing import Optional
+
 from . import constants
 
 
 class Unit:
     """Base class for all unit types.
-    
+
     This class provides the foundation for all unit types in the game.
     Each unit type has specific combat statistics (attack, defense,
     movement, range) and belongs to a player (NORTH or SOUTH).
     """
-    
+
     def __init__(self, owner: str):
         """Initialize a unit with an owner.
-        
+
         Args:
             owner: The player who owns this unit ('NORTH' or 'SOUTH')
         """
         self._owner = owner
-    
+
     @property
     def owner(self) -> str:
         """Return unit owner (NORTH or SOUTH)."""
         return self._owner
-    
+
     @property
     def unit_type(self) -> str:
         """Return unit type string."""
         raise NotImplementedError
-    
+
     @property
     def attack(self) -> int:
         """Return attack value."""
         raise NotImplementedError
-    
+
     @property
     def defense(self) -> int:
         """Return defense value."""
         raise NotImplementedError
-    
+
     @property
     def movement(self) -> int:
         """Return movement range in squares."""
         raise NotImplementedError
-    
+
     @property
     def range(self) -> Optional[int]:
         """Return attack range in squares, or None for structures."""
         raise NotImplementedError
-    
+
     def is_combat_unit(self) -> bool:
         """Check if this is a combat unit (can attack).
-        
+
         Returns:
             True if the unit has an attack value > 0
         """
         return self.attack > 0
-    
+
     def is_structure(self) -> bool:
         """Check if this is a structure (cannot move).
-        
+
         Returns:
             True if the unit has movement = 0
         """
         return self.movement == 0
-    
+
     def __repr__(self) -> str:
         """Return string representation of the unit."""
         return f"{self.unit_type}({self.owner})"
-    
+
     def __eq__(self, other) -> bool:
         """Check equality based on unit type and owner."""
         if not isinstance(other, Unit):
             return False
-        return (self.unit_type == other.unit_type and 
+        return (self.unit_type == other.unit_type and
                 self.owner == other.owner)
-    
+
     def __hash__(self) -> int:
         """Return hash based on unit type and owner."""
         return hash((self.unit_type, self.owner))
@@ -161,20 +162,20 @@ class SwiftRelay(Unit):
 
 def create_piece(unit_type: str, owner: str) -> Unit:
     """Factory function to create unit instances from type strings.
-    
+
     This is the recommended way to create units, as it validates
     the unit_type and owner parameters.
-    
+
     Args:
         unit_type: String representing unit type
         owner: 'NORTH' or 'SOUTH'
-    
+
     Returns:
         Unit subclass instance
-    
+
     Raises:
         ValueError: If unit_type or owner is invalid
-    
+
     Examples:
         >>> unit = create_piece("INFANTRY", "NORTH")
         >>> unit.unit_type
@@ -191,11 +192,11 @@ def create_piece(unit_type: str, owner: str) -> Unit:
         constants.UNIT_SWIFT_CANNON: SwiftCannon,
         constants.UNIT_SWIFT_RELAY: SwiftRelay,
     }
-    
+
     if owner not in (constants.PLAYER_NORTH, constants.PLAYER_SOUTH):
         raise ValueError(f"Invalid owner: {owner}")
-    
+
     if unit_type not in unit_classes:
         raise ValueError(f"Invalid unit type: {unit_type}")
-    
+
     return unit_classes[unit_type](owner)
