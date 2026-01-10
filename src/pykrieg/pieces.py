@@ -14,9 +14,12 @@ Unit Statistics:
 - Swift Relay: Atk 0 / Def 1 / Move 2 / Range 0
 """
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from . import constants
+
+if TYPE_CHECKING:
+    pass
 
 
 class Unit:
@@ -85,7 +88,7 @@ class Unit:
         """Return string representation of the unit."""
         return f"{self.unit_type}({self.owner})"
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check equality based on unit type and owner."""
         if not isinstance(other, Unit):
             return False

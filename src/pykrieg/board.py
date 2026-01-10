@@ -6,9 +6,12 @@ coordinate validation, and piece management.
 """
 
 import warnings
-from typing import Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from . import constants
+
+if TYPE_CHECKING:
+    pass
 
 
 class Board:
@@ -24,43 +27,44 @@ class Board:
 
     TERRITORY_BOUNDARY = constants.TERRITORY_BOUNDARY  # Row 10 is the boundary
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize empty board with territory boundaries."""
         self._rows = constants.BOARD_ROWS
         self._cols = constants.BOARD_COLS
-        self._board = [[None for _ in range(self._cols)]
-                      for _ in range(self._rows)]
+        # Use Any to handle both None and Unit objects due to circular imports
+        self._board: List[List[Any]] = [[None for _ in range(self._cols)]
+                                        for _ in range(self._rows)]
         self._turn = constants.PLAYER_NORTH  # Starting player
 
     @property
-    def rows(self):
+    def rows(self) -> int:
         """Return number of rows."""
         return self._rows
 
     @property
-    def cols(self):
+    def cols(self) -> int:
         """Return number of columns."""
         return self._cols
 
     @property
-    def turn(self):
+    def turn(self) -> str:
         """Return current player."""
         return self._turn
 
-    def turn_side(self):
+    def turn_side(self) -> str:
         """Return current turn side (NORTH/SOUTH)."""
         return self._turn
 
     @property
-    def territory_boundary(self):
-        """Return the row number that separates territories."""
+    def territory_boundary(self) -> int:
+        """Return row number that separates territories."""
         return self.TERRITORY_BOUNDARY
 
-    def is_valid_square(self, row, col):
+    def is_valid_square(self, row: int, col: int) -> bool:
         """Check if coordinates are within board bounds."""
         return (0 <= row < self._rows) and (0 <= col < self._cols)
 
-    def get_piece(self, row, col):
+    def get_piece(self, row: int, col: int) -> Optional[object]:
         """Get piece at given coordinates.
 
         .. deprecated:: 0.1.2
@@ -74,9 +78,9 @@ class Board:
         )
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
-        return self._board[row][col]
+        return self._board[row][col]  # type: ignore[no-any-return]
 
-    def set_piece(self, row, col, piece):
+    def set_piece(self, row: int, col: int, piece: object) -> None:
         """Set piece at given coordinates.
 
         .. deprecated:: 0.1.2
@@ -92,7 +96,7 @@ class Board:
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
         self._board[row][col] = piece
 
-    def clear_square(self, row, col):
+    def clear_square(self, row: int, col: int) -> None:
         """Remove piece from square."""
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
@@ -100,7 +104,7 @@ class Board:
 
     # Unit placement methods
 
-    def place_unit(self, row: int, col: int, unit) -> None:
+    def place_unit(self, row: int, col: int, unit: object) -> None:
         """Place a Unit object on the board.
 
         Args:
@@ -116,7 +120,7 @@ class Board:
         self._board[row][col] = unit
 
     def create_and_place_unit(self, row: int, col: int,
-                             unit_type: str, owner: str):
+                             unit_type: str, owner: str) -> object:
         """Create and place a unit on the board in one step.
 
         Args:
@@ -138,7 +142,7 @@ class Board:
 
     # Unit query methods
 
-    def get_unit(self, row: int, col: int) -> Optional:
+    def get_unit(self, row: int, col: int) -> Optional[object]:
         """Get Unit object at given coordinates.
 
         Args:
@@ -153,7 +157,7 @@ class Board:
         """
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
-        return self._board[row][col]
+        return self._board[row][col]  # type: ignore[no-any-return]
 
     def get_unit_type(self, row: int, col: int) -> Optional[str]:
         """Get unit type string at given coordinates.
@@ -161,7 +165,10 @@ class Board:
         Returns unit type string or None if square is empty.
         """
         unit = self.get_unit(row, col)
-        return unit.unit_type if unit else None
+        if unit is None:
+            return None
+        # Use getattr to avoid circular imports with Unit type
+        return getattr(unit, 'unit_type', None)
 
     def get_unit_owner(self, row: int, col: int) -> Optional[str]:
         """Get unit owner at given coordinates.
@@ -169,7 +176,10 @@ class Board:
         Returns 'NORTH', 'SOUTH', or None if square is empty.
         """
         unit = self.get_unit(row, col)
-        return unit.owner if unit else None
+        if unit is None:
+            return None
+        # Use getattr to avoid circular imports with Unit type
+        return getattr(unit, 'owner', None)
 
     def count_units(self, unit_type: Optional[str] = None,
                    owner: Optional[str] = None) -> int:
@@ -199,9 +209,9 @@ class Board:
             unit_type: Unit type string
 
         Returns:
-            List of (row, col) tuples containing the unit type
+            List of (row, col) tuples containing unit type
         """
-        units = []
+        units: List[Tuple[int, int]] = []
         for row in range(self._rows):
             for col in range(self._cols):
                 unit = self._board[row][col]
@@ -216,9 +226,9 @@ class Board:
             owner: 'NORTH' or 'SOUTH'
 
         Returns:
-            List of (row, col) tuples containing the player's units
+            List of (row, col) tuples containing player's units
         """
-        units = []
+        units: List[Tuple[int, int]] = []
         for row in range(self._rows):
             for col in range(self._cols):
                 unit = self._board[row][col]
@@ -232,7 +242,7 @@ class Board:
         Returns:
             Dictionary mapping (row, col) tuples to Unit objects
         """
-        units = {}
+        units: Dict[Tuple[int, int], object] = {}
         for row in range(self._rows):
             for col in range(self._cols):
                 unit = self._board[row][col]
@@ -256,7 +266,7 @@ class Board:
         """
         return owner in (constants.PLAYER_NORTH, constants.PLAYER_SOUTH)
 
-    def get_territory(self, row, col):
+    def get_territory(self, row: int, col: int) -> str:
         """
         Determine which territory a square belongs to.
 
@@ -269,15 +279,15 @@ class Board:
 
         return constants.PLAYER_NORTH if row < self.TERRITORY_BOUNDARY else constants.PLAYER_SOUTH
 
-    def is_north_territory(self, row, col):
+    def is_north_territory(self, row: int, col: int) -> bool:
         """Check if square is in North territory."""
         return self.get_territory(row, col) == constants.PLAYER_NORTH
 
-    def is_south_territory(self, row, col):
+    def is_south_territory(self, row: int, col: int) -> bool:
         """Check if square is in South territory."""
         return self.get_territory(row, col) == constants.PLAYER_SOUTH
 
-    def get_territory_squares(self, territory):
+    def get_territory_squares(self, territory: str) -> List[Tuple[int, int]]:
         """
         Get all squares belonging to a territory.
 
@@ -298,7 +308,7 @@ class Board:
         return squares
 
     @staticmethod
-    def spreadsheet_to_tuple(coord):
+    def spreadsheet_to_tuple(coord: str) -> Tuple[int, int]:
         """
         Convert spreadsheet-style coordinate to internal (row, col) tuple.
 
@@ -357,7 +367,7 @@ class Board:
         return (row_index, col_index)
 
     @staticmethod
-    def tuple_to_spreadsheet(row, col):
+    def tuple_to_spreadsheet(row: int, col: int) -> str:
         """
         Convert internal (row, col) tuple to spreadsheet-style coordinate.
 
@@ -382,7 +392,7 @@ class Board:
 
         # Format column (0=A, 1=B, 25=Z, 26=AA, etc.)
         col_index = col + 1  # Convert to 1-based
-        col_letters = []
+        col_letters: List[str] = []
         while col_index > 0:
             col_index -= 1
             col_letters.insert(0, chr(ord('A') + col_index % 26))
@@ -394,7 +404,7 @@ class Board:
         return f"{''.join(col_letters)}{row_number}"
 
     @staticmethod
-    def tuple_to_index(row, col, board_cols=25):
+    def tuple_to_index(row: int, col: int, board_cols: int = 25) -> int:
         """
         Convert row, col to square index (row-major order).
 
@@ -417,7 +427,7 @@ class Board:
         return row * board_cols + col
 
     @staticmethod
-    def index_to_tuple(index, board_cols=25, board_rows=20):
+    def index_to_tuple(index: int, board_cols: int = 25, board_rows: int = 20) -> Tuple[int, int]:
         """
         Convert square index to row, col tuple.
 
@@ -484,7 +494,7 @@ class Board:
         return is_valid_move(self, from_row, from_col, to_row, to_col)
 
     def make_move(self, from_row: int, from_col: int,
-                  to_row: int, to_col: int):
+                  to_row: int, to_col: int) -> object:
         """Make a move on the board.
 
         Convenience method that wraps movement.execute_move.

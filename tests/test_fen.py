@@ -307,3 +307,39 @@ class TestFenSerialization:
         # No piece symbols
         for symbol in ['I', 'C', 'K', 'A', 'R', 'W', 'X', 'i', 'c', 'k', 'a', 'r', 'w', 'x']:
             assert symbol not in fen.split('/')[0], f"Should not have {symbol} in empty board"
+
+    def test_fen_dict_style_piece(self):
+        """Test FEN serialization with dict-style pieces (lines 73-74 coverage)."""
+        board = Board()
+
+        # Add a dict-style piece (common pattern for backward compatibility)
+        dict_piece = {'type': 'INFANTRY', 'owner': 'NORTH'}
+        board.set_piece(0, 0, dict_piece)
+
+        # Should serialize successfully
+        fen = Fen.board_to_fen(board)
+        
+        # Verify it appears in FEN
+        assert 'I' in fen  # Infantry symbol
+        
+        # Verify roundtrip works
+        board2 = Fen.fen_to_board(fen)
+        retrieved = board2.get_piece(0, 0)
+        assert retrieved['type'] == 'INFANTRY'
+        assert retrieved['owner'] == 'NORTH'
+
+    def test_fen_invalid_piece_without_unit_type(self):
+        """Test FEN serialization with invalid piece missing unit_type."""
+        board = Board()
+
+        # Create an invalid piece object (not a dict, no unit_type attribute)
+        class InvalidPiece:
+            def __init__(self):
+                self.name = "invalid"
+
+        invalid_piece = InvalidPiece()
+        board.set_piece(0, 0, invalid_piece)
+
+        # Should raise ValueError when trying to serialize
+        with pytest.raises(ValueError, match="Piece has no unit_type attribute"):
+            Fen.board_to_fen(board)

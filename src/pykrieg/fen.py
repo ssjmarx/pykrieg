@@ -5,13 +5,18 @@ This module implements FEN serialization/deserialization for the
 0.1.0 version of Pykrieg, supporting basic board state representation.
 """
 
+from typing import TYPE_CHECKING
+
 from . import constants
+
+if TYPE_CHECKING:
+    from .board import Board
 
 
 class Fen:
     """FEN (Forsyth-Edwards Notation) for Pykrieg board serialization.
 
-    This is the 0.1.0 basic implementation supporting:
+    This is 0.1.0 basic implementation supporting:
     - Board serialization/deserialization
     - Basic piece representation
     - Turn tracking
@@ -41,7 +46,7 @@ class Fen:
     SYMBOL_TO_PIECE = constants.SYMBOL_TO_UNIT
 
     @staticmethod
-    def board_to_fen(board):
+    def board_to_fen(board: 'Board') -> str:
         """
         Convert Board object to FEN string (0.1.0 basic version).
 
@@ -63,9 +68,20 @@ class Fen:
                 if piece is None:
                     row_fen.append('_')
                 else:
-                    symbol = Fen.PIECE_SYMBOLS[piece['type']]
+                    # Handle both Unit objects and dict-style pieces for backward compatibility
+                    if hasattr(piece, 'unit_type'):
+                        unit_type = getattr(piece, 'unit_type', None)
+                        owner = getattr(piece, 'owner', None)
+                    else:
+                        # Dict-style pieces use dict access, not getattr
+                        unit_type = piece.get('type') if isinstance(piece, dict) else None
+                        owner = piece.get('owner') if isinstance(piece, dict) else None
+
+                    if unit_type is None:
+                        raise ValueError("Piece has no unit_type attribute")
+                    symbol = Fen.PIECE_SYMBOLS[unit_type]
                     # Convert to lowercase for South
-                    if piece['owner'] == 'SOUTH':
+                    if owner == 'SOUTH':
                         symbol = symbol.lower()
                     row_fen.append(symbol)
             rows_fen.append(''.join(row_fen))
@@ -84,7 +100,7 @@ class Fen:
         return fen
 
     @staticmethod
-    def fen_to_board(fen_string):
+    def fen_to_board(fen_string: str) -> 'Board':
         """
         Convert FEN string to Board object (0.1.0 basic version).
 
