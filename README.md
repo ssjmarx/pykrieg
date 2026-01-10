@@ -6,11 +6,6 @@ A Pythonic wargame engine for Guy Debord's *Le Jeu de la Guerre* (A Game of War)
 
 Pykrieg is a Python library that implements the complex rules of Guy Debord's strategic tabletop game, providing a clean, extensible API for developers to build custom interfaces, AI opponents, and analysis tools. The project is inspired by the successful **python-chess** library and follows similar design principles.
 
-## Acknowledgments
-
-- Inspired by Guy Debord's *Le Jeu de la Guerre*
-- Modeled after the python-chess library
-
 ## Planned Features
 
 - **Complete Game Engine**: Full implementation of Debord's strategic game rules
@@ -29,51 +24,76 @@ pip install pykrieg
 ## Quick Start
 
 ```python
-import pykrieg
+from pykrieg import Board, Fen
 
-# Create a new game
-game = pykrieg.Game()
+# Create a board
+board = Board()
 
-# Get legal moves
-for move in game.legal_moves:
-    print(move)
+# Add pieces
+board.set_piece(0, 0, {'type': 'INFANTRY', 'owner': 'NORTH'})
+board.set_piece(5, 10, {'type': 'CAVALRY', 'owner': 'NORTH'})
+board.set_piece(19, 24, {'type': 'INFANTRY', 'owner': 'SOUTH'})
 
-# Make a move
-game.push(move)
+# Serialize to FEN
+fen = Fen.board_to_fen(board)
+print(fen)
 
-# Check game state
-print(game.is_game_over())
+# Deserialize from FEN
+board2 = Fen.fen_to_board(fen)
+
+# Check territory
+print(board.get_territory(0, 0))  # 'NORTH'
+print(board.get_territory(19, 24))  # 'SOUTH'
+
+# Convert coordinates
+print(Board.tuple_to_spreadsheet(0, 0))  # 'A1'
+print(Board.spreadsheet_to_tuple('A1'))  # (0, 0)
 ```
 
 ## Documentation
 
 Comprehensive documentation is available at [docs/](docs/) covering:
 - Basic usage
-- API reference
-- Creating custom variants
-- Building AI engines
-- Developing graphical interfaces
+- API reference for Board, FEN, and utility functions
+- Coordinate system details
+- FEN format specification
+- Type definitions
+
+Build documentation locally::
+
+   cd docs
+   make html
+
+## Version 0.1.0 Features
+
+- **Board Representation**: 20×25 grid with territory divisions (North/South)
+- **Coordinate System**: Support for tuple, spreadsheet-style, and index formats
+- **FEN Serialization**: Save and load board states in FEN format
+- **Territory Management**: Query and manage North and South territories
+- **Well-Documented**: Comprehensive docstrings and Sphinx documentation
 
 ## Development Status
 
-This project is currently in **Phase 1: Foundation and Core Infrastructure**. See [docs/prompt](docs/prompt) for the complete implementation plan.
+**Current Version: 0.1.0**
 
-### Current Phase Goals
+See [0.1.0-implementation-plan.ignore.md](0.1.0-implementation-plan.ignore.md) for the complete implementation plan.
+
+### Completed Features
 - [x] Project setup and tooling
-- [ ] Core data structures (board, territories, coordinate system)
-- [ ] Game state management with FEN-like serialization
-- [ ] Documentation framework setup
+- [x] Board class with 20×25 grid representation
+- [x] Territory system (North/South)
+- [x] Coordinate system (tuple, spreadsheet-style, index)
+- [x] FEN serialization format
+- [x] Core data structures
+- [x] Game state management with FEN serialization
+- [x] Documentation framework setup
 
-## Project Structure
-
-```
-pykrieg/
-├── src/pykrieg/          # Main library code
-├── tests/                 # Test suite
-├── docs/                  # Documentation
-├── examples/              # Example implementations
-└── scripts/               # Utility scripts
-```
+### Next Steps
+After 0.1.0, the next patch will implement:
+- Unit type system (Infantry, Cavalry, Cannon, Arsenals, Relays)
+- Unit class hierarchy
+- Unit placement and querying
+- Unit attribute testing
 
 ## Contributing
 
@@ -87,6 +107,10 @@ If you like the project and want to support future development, consider donatin
 
 ## License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the GNU General Public License v3.0 - see [LICENSE](LICENSE) for details.
 
-
+The GPL v3 license ensures that:
+- The software remains free for all users
+- Derivative works must be shared under the same license (copyleft)
+- Commercial use is prohibited (requires separate commercial license)
+- Users have the freedom to study, modify, and distribute the software

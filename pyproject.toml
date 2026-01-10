@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykrieg"
-version = "0.0.1"
+version = "0.1.0"
 description = "A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {text = "MIT"}
+license = {text = "GPL-3.0"}
 authors = [
     {name = "ssjmarx", email = "ssjmarx@users.noreply.github.com"}
 ]
@@ -16,7 +16,7 @@ keywords = ["wargame", "game", "engine", "debord", "strategy", "board game"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",

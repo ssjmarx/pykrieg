@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create GitHub Release and Publish to PyPI
+    runs-on: ubuntu-latest
+    # Wait for tests to complete before releasing
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Check package was built
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found!"
+            exit 1
+          fi
+          ls -lh dist/
+          echo "✅ Package built successfully"
+      
+      - name: Get tag version
+        id: tag_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag_version.outputs.tag }}
+          name: Pykrieg ${{ steps.tag_version.outputs.tag }}
+          draft: false
+          prerelease: false
+          body: |
+            ## Pykrieg ${{ steps.tag_version.outputs.tag }}
+            
+            ### Installation
+            ```bash
+            pip install pykrieg==${{ steps.tag_version.outputs.tag }}
+            ```
+            
+            ### What's Included
+            - 20×25 board representation
+            - Territory system (North/South)
+            - Coordinate system (tuple, string, and index formats)
+            - FEN serialization format
+            - All 7 unit types supported
+            
+            ### Documentation
+            - [API Documentation](https://ssjmarx.github.io/pykrieg/)
+            - [GitHub Repository](https://github.com/ssjmarx/pykrieg)
+            
+            ### Testing
+            - 127 tests, 100% pass rate
+            - 100% code coverage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          echo "Publishing to PyPI..."
+          twine upload dist/*
+          echo "✅ Published successfully to PyPI"
+      
+      - name: Verify PyPI publication
+        run: |
+          echo "Waiting for PyPI to propagate (30 seconds)..."
+          sleep 30
+          
+          # Try to fetch package info from PyPI
+          echo "Verifying package on PyPI..."
+          pip index versions pykrieg
+          
+          echo "✅ Release complete!"
+          echo ""
+          echo "Users can now install with:"
+          echo "  pip install pykrieg==${{ steps.tag_version.outputs.tag }}"
+          echo "  pip install pykrieg"

@@ -4,16 +4,22 @@ Pykrieg - A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre.
 This package is currently in early development. Check back soon for updates!
 """
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __author__ = "ssjmarx"
-__license__ = "MIT"
+__license__ = "GPL-3.0"
 
+from . import board
+from . import constants
+from . import fen
+from . import types
+from .board import Board
+from .fen import Fen
 
-def placeholder() -> str:
-    """
-    Placeholder function for the skeleton package.
-    
-    Returns:
-        A message indicating this is a placeholder package.
-    """
-    return "Pykrieg is currently in development. This is a skeleton package."
+__all__ = [
+    'board',
+    'constants',
+    'fen',
+    'types',
+    'Board',
+    'Fen',
+]
