@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykrieg"
-version = "0.1.0"
+version = "0.1.1"
 description = "A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -32,6 +32,13 @@ Homepage = "https://github.com/ssjmarx/pykrieg"
 Documentation = "https://github.com/ssjmarx/pykrieg/docs"
 Repository = "https://github.com/ssjmarx/pykrieg"
 Issues = "https://github.com/ssjmarx/pykrieg/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "hypothesis>=6.0.0",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
