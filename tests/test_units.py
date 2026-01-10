@@ -833,6 +833,7 @@ def test_unit_stats_independent_per_class():
 # Property-Based Tests (Hypothesis)
 # =============================================================================
 
+hypothesis = pytest.importorskip("hypothesis", reason="requires hypothesis>=6.0.0")
 from hypothesis import given, strategies as st
 
 
