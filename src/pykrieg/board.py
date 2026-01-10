@@ -5,6 +5,7 @@ This module implements the Board class with territory divisions,
 coordinate validation, and piece management.
 """
 
+from typing import List, Tuple, Dict, Optional
 from . import constants
 
 
@@ -74,6 +75,164 @@ class Board:
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
         self._board[row][col] = None
+    
+    # Unit placement methods
+    
+    def place_unit(self, row: int, col: int, unit) -> None:
+        """Place a Unit object on the board.
+        
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+            unit: Unit object to place
+        
+        Raises:
+            ValueError: If coordinates are invalid
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+        self._board[row][col] = unit
+    
+    def create_and_place_unit(self, row: int, col: int, 
+                             unit_type: str, owner: str):
+        """Create and place a unit on the board in one step.
+        
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+            unit_type: Unit type string
+            owner: 'NORTH' or 'SOUTH'
+        
+        Returns:
+            The created Unit object
+        
+        Raises:
+            ValueError: If coordinates, unit_type, or owner are invalid
+        """
+        from .pieces import create_piece
+        unit = create_piece(unit_type, owner)
+        self.place_unit(row, col, unit)
+        return unit
+    
+    # Unit query methods
+    
+    def get_unit(self, row: int, col: int) -> Optional:
+        """Get Unit object at given coordinates.
+        
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+        
+        Returns:
+            Unit object or None if square is empty
+        
+        Raises:
+            ValueError: If coordinates are invalid
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+        return self._board[row][col]
+    
+    def get_unit_type(self, row: int, col: int) -> Optional[str]:
+        """Get unit type string at given coordinates.
+        
+        Returns unit type string or None if square is empty.
+        """
+        unit = self.get_unit(row, col)
+        return unit.unit_type if unit else None
+    
+    def get_unit_owner(self, row: int, col: int) -> Optional[str]:
+        """Get unit owner at given coordinates.
+        
+        Returns 'NORTH', 'SOUTH', or None if square is empty.
+        """
+        unit = self.get_unit(row, col)
+        return unit.owner if unit else None
+    
+    def count_units(self, unit_type: Optional[str] = None, 
+                   owner: Optional[str] = None) -> int:
+        """Count units on the board with optional filters.
+        
+        Args:
+            unit_type: Unit type to count, or None for all types
+            owner: Owner to count, or None for all owners
+        
+        Returns:
+            Number of matching units
+        """
+        count = 0
+        for row in range(self._rows):
+            for col in range(self._cols):
+                unit = self._board[row][col]
+                if unit:
+                    if unit_type is None or unit.unit_type == unit_type:
+                        if owner is None or unit.owner == owner:
+                            count += 1
+        return count
+    
+    def get_units_by_type(self, unit_type: str) -> List[Tuple[int, int]]:
+        """Get all coordinates containing a specific unit type.
+        
+        Args:
+            unit_type: Unit type string
+        
+        Returns:
+            List of (row, col) tuples containing the unit type
+        """
+        units = []
+        for row in range(self._rows):
+            for col in range(self._cols):
+                unit = self._board[row][col]
+                if unit and unit.unit_type == unit_type:
+                    units.append((row, col))
+        return units
+    
+    def get_units_by_owner(self, owner: str) -> List[Tuple[int, int]]:
+        """Get all coordinates containing units owned by a player.
+        
+        Args:
+            owner: 'NORTH' or 'SOUTH'
+        
+        Returns:
+            List of (row, col) tuples containing the player's units
+        """
+        units = []
+        for row in range(self._rows):
+            for col in range(self._cols):
+                unit = self._board[row][col]
+                if unit and unit.owner == owner:
+                    units.append((row, col))
+        return units
+    
+    def get_all_units(self) -> Dict[Tuple[int, int], object]:
+        """Get all units on the board.
+        
+        Returns:
+            Dictionary mapping (row, col) tuples to Unit objects
+        """
+        units = {}
+        for row in range(self._rows):
+            for col in range(self._cols):
+                unit = self._board[row][col]
+                if unit:
+                    units[(row, col)] = unit
+        return units
+    
+    # Validation methods
+    
+    def is_valid_unit_type(self, unit_type: str) -> bool:
+        """Check if unit type is valid.
+        
+        Returns True if unit_type is in ALL_UNIT_TYPES.
+        """
+        return unit_type in constants.ALL_UNIT_TYPES
+    
+    def is_valid_owner(self, owner: str) -> bool:
+        """Check if owner is valid.
+        
+        Returns True if owner is NORTH or SOUTH.
+        """
+        return owner in (constants.PLAYER_NORTH, constants.PLAYER_SOUTH)
     
     def get_territory(self, row, col):
         """

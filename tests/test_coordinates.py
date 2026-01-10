@@ -80,6 +80,12 @@ class TestCoordinateConversions:
         
         with pytest.raises(ValueError):
             Board.spreadsheet_to_tuple("A0")  # Zero row (invalid)
+        
+        with pytest.raises(ValueError):
+            Board.spreadsheet_to_tuple("A-5")  # Negative row (invalid)
+        
+        with pytest.raises(ValueError):
+            Board.spreadsheet_to_tuple("B-1")  # Negative row (invalid)
     
     def test_tuple_to_index(self):
         """Test converting coordinates to square index."""

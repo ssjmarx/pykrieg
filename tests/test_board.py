@@ -33,12 +33,17 @@ def test_valid_square_coordinates():
 
 
 def test_set_and_get_piece():
-    """Test setting and getting pieces."""
+    """Test setting and getting pieces with new Unit system."""
+    from pykrieg.pieces import Infantry
     board = Board()
-    dummy_piece = {"type": "INFANTRY", "owner": "NORTH"}
+    dummy_unit = Infantry("NORTH")
     
-    board.set_piece(0, 0, dummy_piece)
-    assert board.get_piece(0, 0) == dummy_piece
+    board.place_unit(0, 0, dummy_unit)
+    retrieved_unit = board.get_unit(0, 0)
+    
+    assert retrieved_unit == dummy_unit
+    assert retrieved_unit.unit_type == "INFANTRY"
+    assert retrieved_unit.owner == "NORTH"
     assert board.get_piece(0, 1) is None
 
 
@@ -66,6 +71,23 @@ def test_invalid_coordinates_raise_error():
     
     with pytest.raises(ValueError):
         board.clear_square(0, 25)
+
+
+def test_get_unit_invalid_coordinates():
+    """Test that get_unit raises ValueError for invalid coordinates."""
+    board = Board()
+    
+    with pytest.raises(ValueError, match="Invalid coordinates"):
+        board.get_unit(-1, 0)
+    
+    with pytest.raises(ValueError, match="Invalid coordinates"):
+        board.get_unit(20, 0)
+    
+    with pytest.raises(ValueError, match="Invalid coordinates"):
+        board.get_unit(0, -1)
+    
+    with pytest.raises(ValueError, match="Invalid coordinates"):
+        board.get_unit(0, 25)
 
 
 def test_turn_side():

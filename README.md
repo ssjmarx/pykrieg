@@ -24,17 +24,28 @@ pip install pykrieg
 ## Quick Start
 
 ```python
-from pykrieg import Board, Fen
+from pykrieg import Board, create_piece
 
 # Create a board
 board = Board()
 
-# Add pieces
-board.set_piece(0, 0, {'type': 'INFANTRY', 'owner': 'NORTH'})
-board.set_piece(5, 10, {'type': 'CAVALRY', 'owner': 'NORTH'})
-board.set_piece(19, 24, {'type': 'INFANTRY', 'owner': 'SOUTH'})
+# Add units using the factory function
+board.create_and_place_unit(0, 0, 'INFANTRY', 'NORTH')
+board.create_and_place_unit(5, 10, 'CAVALRY', 'NORTH')
+board.create_and_place_unit(19, 24, 'INFANTRY', 'SOUTH')
+
+# Or create units directly and place them
+from pykrieg import Infantry, Cannon
+unit = Cannon('NORTH')
+board.place_unit(10, 10, unit)
+
+# Query units on the board
+print(board.count_units())  # Total number of units
+print(board.count_units(unit_type='INFANTRY'))  # Count of infantry
+print(board.get_units_by_owner('NORTH'))  # List of coordinates with North's units
 
 # Serialize to FEN
+from pykrieg import Fen
 fen = Fen.board_to_fen(board)
 print(fen)
 
