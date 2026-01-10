@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    
+    - name: Build package
+      run: |
+        python -m build
+    
+    - name: Check import
+      run: |
+        pip install dist/*.whl
+        python -c "import pykrieg; print(f'Version: {pykrieg.__version__}')"
+        python -c "import pykrieg; print(pykrieg.placeholder())"
+    
+    - name: Lint with ruff
+      run: |
+        pip install ruff
+        ruff check .
+      continue-on-error: true
+    
+    - name: Type check with mypy
+      run: |
+        pip install mypy
+        mypy src/
+      continue-on-error: true
