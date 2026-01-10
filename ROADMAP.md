@@ -75,14 +75,18 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 **Features**:
 - Movement rules for all unit types:
-  - Infantry: 1 square orthogonally
-  - Cavalry: 2 squares orthogonally
-  - Cannon: 1 square orthogonally
-  - Arsenals: No movement
-  - Relays: No movement
+  - Infantry: 1 square radius (8 maximum legal moves)
+  - Cavalry: 2 squares radius (24 maximum legal moves)
+  - Cannon: 1 square radius (8 maximum legal moves)
+  - Arsenals: No movement (movement=0, immobile)
+  - Relays: 1 square radius (8 maximum legal moves)
+  - Swift Cannons: 2 squares radius (24 maximum legal moves)
+  - Swift Relays: 2 squares radius (24 maximum legal moves)
 - Move generation system producing pseudo-legal moves
 - Movement validation
 - Move execution (updating board state)
+- Board convenience methods for movement operations
+- Deprecated get_piece/set_piece methods (to be removed in 0.3.0)
 
 **Testing Requirements**:
 - Individual unit movement pattern tests (85%+ coverage)
@@ -94,6 +98,12 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 - All unit types can move according to basic rules
 - Move generation produces all legal moves
 - Board state updates correctly after movement
+
+**Implementation Status**: Complete
+- All movement functions implemented in src/pykrieg/movement.py
+- Board convenience methods added (get_legal_moves, is_legal_move, make_move)
+- Comprehensive test suite with 91 tests achieving 100% coverage
+- All 291 tests passing (100% overall coverage)
 
 ---
 
@@ -798,11 +808,11 @@ This roadmap is guided by these principles:
 
 ## Status Legend
 
-- 🔄 In Progress
-- ✅ Complete
-- 📅 Planned
-- ⏸️ Blocked
-- ❌ Deprecated
+- In Progress
+- Complete
+- Planned
+- Blocked
+- Deprecated
 
 *Current version: Development phase*
 

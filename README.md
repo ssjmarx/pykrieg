@@ -59,6 +59,32 @@ print(board.get_territory(19, 24))  # 'SOUTH'
 # Convert coordinates
 print(Board.tuple_to_spreadsheet(0, 0))  # 'A1'
 print(Board.spreadsheet_to_tuple('A1'))  # (0, 0)
+
+# Movement
+from pykrieg import generate_moves, is_valid_move, execute_move
+
+# Get legal moves for a unit
+moves = generate_moves(board, 5, 10)
+print(f"Available moves: {moves}")  # List of (row, col) tuples
+
+# Check if a move is valid
+if is_valid_move(board, 5, 10, 7, 12):
+    print("Move is valid!")
+
+# Execute a move
+moved_unit = execute_move(board, 5, 10, 7, 12)
+print(f"Moved {moved_unit.unit_type} to (7, 12)")
+
+# Or use Board convenience methods
+moves = board.get_legal_moves(5, 10)  # Same as generate_moves()
+is_valid = board.is_legal_move(5, 10, 7, 12)  # Same as is_valid_move()
+unit = board.make_move(5, 10, 7, 12)  # Same as execute_move()
+
+# Check unit movement properties
+from pykrieg import get_movement_range, can_move
+unit = board.get_unit(7, 12)
+print(f"Movement range: {get_movement_range(unit)}")  # 0, 1, or 2
+print(f"Can move: {can_move(unit)}")  # True or False
 ```
 
 ## Documentation

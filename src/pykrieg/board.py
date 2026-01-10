@@ -6,6 +6,7 @@ coordinate validation, and piece management.
 """
 
 from typing import List, Tuple, Dict, Optional
+import warnings
 from . import constants
 
 
@@ -59,13 +60,33 @@ class Board:
         return (0 <= row < self._rows) and (0 <= col < self._cols)
     
     def get_piece(self, row, col):
-        """Get piece at given coordinates."""
+        """Get piece at given coordinates.
+        
+        .. deprecated:: 0.1.2
+            Use :meth:`get_unit` instead. Will be removed in version 0.3.0.
+        """
+        warnings.warn(
+            "get_piece() is deprecated and will be removed in version 0.3.0. "
+            "Use get_unit() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
         return self._board[row][col]
     
     def set_piece(self, row, col, piece):
-        """Set piece at given coordinates."""
+        """Set piece at given coordinates.
+        
+        .. deprecated:: 0.1.2
+            Use :meth:`place_unit` instead. Will be removed in version 0.3.0.
+        """
+        warnings.warn(
+            "set_piece() is deprecated and will be removed in version 0.3.0. "
+            "Use place_unit() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not self.is_valid_square(row, col):
             raise ValueError(f"Invalid coordinates: ({row}, {col})")
         self._board[row][col] = piece
@@ -422,3 +443,62 @@ class Board:
         row = index // board_cols
         col = index % board_cols
         return (row, col)
+    
+    # Movement convenience methods
+    
+    def get_legal_moves(self, row: int, col: int) -> List[Tuple[int, int]]:
+        """Get all legal moves for unit at given position.
+        
+        Convenience method that wraps movement.generate_moves.
+        
+        Args:
+            row: Row of unit (0-19)
+            col: Column of unit (0-24)
+        
+        Returns:
+            List of (to_row, to_col) tuples
+        
+        Raises:
+            ValueError: If no unit at position
+        """
+        from .movement import generate_moves
+        return generate_moves(self, row, col)
+    
+    def is_legal_move(self, from_row: int, from_col: int,
+                      to_row: int, to_col: int) -> bool:
+        """Check if a move is legal.
+        
+        Convenience method that wraps movement.is_valid_move.
+        
+        Args:
+            from_row: Source row (0-19)
+            from_col: Source column (0-24)
+            to_row: Target row (0-19)
+            to_col: Target column (0-24)
+        
+        Returns:
+            True if move is legal, False otherwise
+        """
+        from .movement import is_valid_move
+        return is_valid_move(self, from_row, from_col, to_row, to_col)
+    
+    def make_move(self, from_row: int, from_col: int,
+                  to_row: int, to_col: int):
+        """Make a move on the board.
+        
+        Convenience method that wraps movement.execute_move.
+        
+        Args:
+            from_row: Source row (0-19)
+            from_col: Source column (0-24)
+            to_row: Target row (0-19)
+            to_col: Target column (0-24)
+        
+        Returns:
+            The Unit object that was moved
+        
+        Raises:
+            ValueError: If move is invalid
+        """
+        from .movement import execute_move
+        return execute_move(self, from_row, from_col, to_row, to_col)
