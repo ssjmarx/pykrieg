@@ -64,37 +64,6 @@ Build documentation locally::
    cd docs
    make html
 
-## Version 0.1.0 Features
-
-- **Board Representation**: 20×25 grid with territory divisions (North/South)
-- **Coordinate System**: Support for tuple, spreadsheet-style, and index formats
-- **FEN Serialization**: Save and load board states in FEN format
-- **Territory Management**: Query and manage North and South territories
-- **Well-Documented**: Comprehensive docstrings and Sphinx documentation
-
-## Development Status
-
-**Current Version: 0.1.0**
-
-See [0.1.0-implementation-plan.ignore.md](0.1.0-implementation-plan.ignore.md) for the complete implementation plan.
-
-### Completed Features
-- [x] Project setup and tooling
-- [x] Board class with 20×25 grid representation
-- [x] Territory system (North/South)
-- [x] Coordinate system (tuple, spreadsheet-style, index)
-- [x] FEN serialization format
-- [x] Core data structures
-- [x] Game state management with FEN serialization
-- [x] Documentation framework setup
-
-### Next Steps
-After 0.1.0, the next patch will implement:
-- Unit type system (Infantry, Cavalry, Cannon, Arsenals, Relays)
-- Unit class hierarchy
-- Unit placement and querying
-- Unit attribute testing
-
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
