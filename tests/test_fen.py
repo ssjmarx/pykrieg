@@ -318,10 +318,10 @@ class TestFenSerialization:
 
         # Should serialize successfully
         fen = Fen.board_to_fen(board)
-        
+
         # Verify it appears in FEN
         assert 'I' in fen  # Infantry symbol
-        
+
         # Verify roundtrip works
         board2 = Fen.fen_to_board(fen)
         retrieved = board2.get_piece(0, 0)
