@@ -230,7 +230,7 @@ class TestPieceStructureValidation:
     def test_invalid_piece_types_accepted(self):
         """Test that invalid piece types are accepted (0.1.0 design decision).
 
-        Note: Piece validation is deferred to 0.1.1 when unit class system
+        Note: Piece validation is deferred to 0.1.2 when unit class system
         is implemented. For 0.1.0, any dict with 'type' and 'owner' keys
         is accepted without validation.
         """
