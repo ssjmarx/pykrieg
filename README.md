@@ -6,7 +6,12 @@ A Pythonic wargame engine for Guy Debord's *Le Jeu de la Guerre* (A Game of War)
 
 Pykrieg is a Python library that implements the complex rules of Guy Debord's strategic tabletop game, providing a clean, extensible API for developers to build custom interfaces, AI opponents, and analysis tools. The project is inspired by the successful **python-chess** library and follows similar design principles.
 
-## Features
+## Acknowledgments
+
+- Inspired by Guy Debord's *Le Jeu de la Guerre*
+- Modeled after the python-chess library
+
+## Planned Features
 
 - **Complete Game Engine**: Full implementation of Debord's strategic game rules
 - **Clean API**: Intuitive Pythonic interface modeled after python-chess
@@ -74,12 +79,14 @@ pykrieg/
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+## Donations
+
+If you like the project and want to support future development, consider donating!
+
+[![Donation Button](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=V444RPNWZTNXQ)
+
 ## License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
-## Acknowledgments
 
-- Inspired by Guy Debord's *Le Jeu de la Guerre*
-- Modeled after the python-chess library
-- Built following the implementation plan outlined in [docs/prompt](docs/prompt)

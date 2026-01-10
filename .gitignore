@@ -74,4 +74,4 @@ docs/_templates/
 # OS
 .DS_Store
 Thumbs.db
-*.ignore
+*.ignore*
