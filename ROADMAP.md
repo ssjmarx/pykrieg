@@ -12,11 +12,11 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-## 0.0.x Series: FUNCTIONAL PROTOTYPE
+## 0.1.x Series: FUNCTIONAL PROTOTYPE
 
 **Goal**: Create a working library that can be imported, manipulate board states, make moves, and calculate battles. Users should be able to import a board state, make moves for either player, export an updated board state, and calculate battles.
 
-### 0.0.1 - Foundation Setup
+### 0.1.0 - Foundation Setup
 **Milestone**: Project scaffolding and core data structures
 
 **Features**:
@@ -43,7 +43,7 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-### 0.0.1 - Unit Type System
+### 0.1.1 - Unit Type System
 **Milestone**: Complete unit hierarchy and attributes
 
 **Features**:
@@ -70,7 +70,7 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-### 0.0.2 - Movement Rules
+### 0.1.2 - Movement Rules
 **Milestone**: Basic movement patterns (terrain-independent)
 
 **Features**:
@@ -97,7 +97,7 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-### 0.0.3 - Combat System
+### 0.1.3 - Combat System
 **Milestone**: Vector-based combat calculation
 
 **Features**:
@@ -123,7 +123,7 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-### 0.0.4 - Turn Management
+### 0.1.4 - Turn Management
 **Milestone**: Complete turn structure
 
 **Features**:
@@ -148,11 +148,11 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-## 0.1.x Series: PLAYABLE GAME
+## 0.2.x Series: PLAYABLE GAME
 
 **Goal**: Complete game implementation with all mechanics and edge cases validated. Users can play full games by inputting moves sequentially, exporting board state to a UI of their own design turn by turn.
 
-### 0.1.0 - Lines of Communication
+### 0.2.0 - Lines of Communication
 **Milestone**: Network tracing and online/offline tracking
 
 **Features**:
@@ -483,298 +483,3 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 **Milestone**: Complete developer documentation
 
 **Features**:
-- Tutorial: Basic usage for beginners
-- Tutorial: Creating custom UIs
-- Tutorial: Building AI engines
-- API reference (complete)
-- Example code snippets
-- Common patterns and best practices
-- Troubleshooting guide
-
-**Testing Requirements**:
-- Doctest execution (all examples)
-- Tutorial code execution tests
-- Documentation completeness checks
-- Accuracy verification
-
-**Success Criteria**:
-- All public APIs documented with examples
-- Tutorials walk through common use cases
-- Examples execute without errors
-- Documentation builds successfully
-
----
-
-### 0.4.3 - Test Suite Completion
-**Milestone**: Comprehensive test coverage
-
-**Features**:
-- Complete unit test suite (90%+ coverage overall, 95%+ for core)
-- Integration test suite
-- Regression test suite (all known scenarios)
-- Property-based test suite (Hypothesis)
-- Performance benchmark suite
-- CI/CD pipeline optimization
-
-**Testing Requirements**:
-- Coverage measurement (coverage.py)
-- All test categories passing
-- CI/CD pipeline functional
-- Test execution time <5 minutes for fast suite
-
-**Success Criteria**:
-- 90%+ code coverage achieved
-- All tests pass in CI/CD
-- Fast feedback during development
-- Regression tests catch known bugs
-
----
-
-### 0.4.4 - Stability and Robustness
-**Milestone**: Production-ready stability
-
-**Features**:
-- Error handling improvements
-- Input validation
-- Graceful failure modes
-- Logging infrastructure
-- Debug mode options
-- Comprehensive edge case handling
-
-**Testing Requirements**:
-- Error handling tests
-- Input validation tests
-- Edge case scenario tests
-- Stress tests
-- Fuzzing tests
-
-**Success Criteria**:
-- No crashes on invalid input
-- Clear error messages
-- Debug mode provides useful information
-- Handles all edge cases gracefully
-
----
-
-## 0.5.x Series: EXTENSIBILITY
-
-**Goal**: Open code to alternative rulesets and community engagement. Provide example alternate game boards, pieces, and rules variations, with necessary functions for community to make more than 1:1 recreations of Debord's game.
-
-### 0.5.0 - Extension Points
-**Milestone**: Clean interfaces for customization
-
-**Features**:
-- Unit type extension interface
-- Terrain type extension interface
-- Victory condition extension interface
-- Movement rule extension interface
-- Combat rule extension interface
-- Extension documentation and examples
-
-**Testing Requirements**:
-- Extension point tests (custom components integrate cleanly)
-- Interface compliance tests
-- Extension example tests
-- Backward compatibility tests
-
-**Success Criteria**:
-- Custom unit types work without modifying core code
-- Custom terrain types work without modifying core code
-- Extensions documented with clear examples
-
----
-
-### 0.5.1 - Console Interface
-**Milestone**: Text-based playable interface
-
-**Features**:
-- ASCII board display
-- Command-line input for moves
-- Turn-by-turn game play
-- Game state display (online/offline units)
-- Help system
-- Save/load functionality
-
-**Testing Requirements**:
-- Functional tests (full game play)
-- Display accuracy tests
-- Input parsing tests
-- Save/load integration tests
-- Cross-platform compatibility tests
-
-**Success Criteria**:
-- Complete game playable from console
-- Clear board and state display
-- Intuitive command interface
-- Works on Windows, macOS, Linux
-
----
-
-### 0.5.2 - GUI Reference Implementation
-**Milestone**: Graphical playable interface
-
-**Features**:
-- Pygame-based GUI
-- Visual board with pieces
-- Click-based move input
-- Animation support (optional)
-- Game state visualization
-- Save/load functionality
-- Engine integration support
-
-**Testing Requirements**:
-- Functional tests (full game play)
-- Visual accuracy tests
-- Event handling tests
-- Performance tests (60 FPS target)
-- Cross-platform tests
-
-**Success Criteria**:
-- Complete game playable with mouse
-- Clear visual representation
-- Smooth animations
-- Multiple screen sizes supported
-
----
-
-### 0.5.3 - Enhanced Engines
-**Milestone**: Advanced AI opponents
-
-**Features**:
-- Opening system (book + generation)
-- Endgame tables
-- Machine learning integration (optional)
-- Personality profiles (aggressive, defensive, etc.)
-- Difficulty levels
-- Analysis mode
-- Multi-threading support
-
-**Testing Requirements**:
-- Engine strength tests (ELO-like rating system)
-- Opening system tests
-- Endgame table tests
-- Performance tests
-- Multi-threading correctness tests
-
-**Success Criteria**:
-- Multiple difficulty levels available
-- Opening system provides solid early play
-- Endgame tables improve final phase
-- Multi-threading improves search depth
-
----
-
-### 0.5.4 - Game Variants
-**Milestone**: Example alternate rulesets
-
-**Features**:
-- Smaller board variant (10×12)
-- Fog of war variant
-- Asymmetric unit variants
-- Alternative victory conditions
-- Custom terrain layouts
-- Variant selection interface
-- Variant documentation
-
-**Testing Requirements**:
-- Each variant playable (full game tests)
-- Variant rule enforcement tests
-- Extension point demonstration tests
-- Documentation accuracy tests
-
-**Success Criteria**:
-- Multiple variants included and playable
-- Variants demonstrate extension capabilities
-- Clear documentation for creating variants
-- Community can create new variants easily
-
----
-
-### 0.5.5 - Community Ecosystem
-**Milestone**: Ready for community contributions
-
-**Features**:
-- Contribution guidelines
-- Code of conduct
-- Issue reporting templates
-- Pull request template
-- Release process documentation
-- Community showcase (links to projects)
-- Extension gallery
-
-**Testing Requirements**:
-- Contribution process tests (simulated PRs)
-- Documentation completeness tests
-- Template usability tests
-
-**Success Criteria**:
-- Clear contribution process
-- Community guidelines established
-- Multiple example implementations available
-- Documentation for all extension points
-
----
-
-## Post-0.5.0: Maintenance and Evolution
-
-After 0.5.0 release, the project will transition to maintenance mode with:
-
-### Maintenance Updates (0.5.x, 0.6.x)
-- Bug fixes and stability improvements
-- Performance optimizations
-- Documentation updates
-- Minor feature additions
-- Python version support updates
-
-### Major Feature Updates (1.0.0+)
-- Breaking API changes (with migration guides)
-- Significant new features
-- Major performance improvements
-- Community-driven enhancements
-
-### Long-term Goals
-- Integration with existing chess UIs (via protocol adapters)
-- Online multiplayer support
-- Tournament management tools
-- Analysis and training features
-- Mobile applications
-
----
-
-## Development Principles
-
-This roadmap is guided by these principles:
-
-1. **Incremental Delivery**: Each sub-release adds concrete value
-2. **Testing First**: Comprehensive tests ensure reliability
-3. **Documentation Continuous**: Updated alongside code
-4. **Community Focus**: Extension points from the beginning
-5. **Performance Aware**: Optimization built into design
-6. **Backward Compatible**: Stable API within major versions
-7. **Open Development**: Community input throughout
-
-## Timeline Estimates
-
-- **0.1.x (Functional Prototype)**: 8-10 weeks
-- **0.2.x (Playable Game)**: 10-12 weeks
-- **0.3.x (Computer Opposition)**: 12-16 weeks (most experimental)
-- **0.4.x (Usable Library)**: 8-10 weeks
-- **0.5.x (Extensibility)**: 8-10 weeks
-
-**Total estimated time**: 46-58 weeks (11-14 months)
-
-*Note: These estimates assume part-time development. Actual timeline may vary based on complexity, unexpected challenges, and available development time.*
-
----
-
-## Status Legend
-
-- 🔄 In Progress
-- ✅ Complete
-- 📅 Planned
-- ⏸️ Blocked
-- ❌ Deprecated
-
-*Current version: Development phase*
-
-For the latest status of each item, please check the [Project Board](https://github.com/ssjmarx/pykrieg/projects) or [Issues](https://github.com/ssjmarx/pykrieg/issues).
