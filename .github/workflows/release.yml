@@ -98,7 +98,7 @@ jobs:
             - All 7 unit types supported
             
             ### Documentation
-            - [API Documentation](https://ssjmarx.github.io/pykrieg/)
+            - [API Documentation](https://app.readthedocs.org/projects/pykrieg/)
             - [GitHub Repository](https://github.com/ssjmarx/pykrieg)
             
             ### Testing
