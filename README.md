@@ -276,6 +276,8 @@ Build documentation locally::
    cd docs
    make html
 
+```
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
