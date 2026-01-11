@@ -69,7 +69,7 @@ def test_territory_boundary():
 def test_turn_phases():
     """Test turn phase constants."""
     assert constants.PHASE_MOVEMENT == 'M'
-    assert constants.PHASE_ATTACK == 'A'
+    assert constants.PHASE_BATTLE == 'B'
 
 
 def test_max_moves_per_turn():

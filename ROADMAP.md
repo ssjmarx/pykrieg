@@ -117,7 +117,9 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 - Retreat resolution (=1 threshold)
 - Attack direction and adjacency handling
 - Cavalry charge mechanics (adjacency bonus)
-- Stacking bonuses for multiple cavalry
+- Stacking bonuses for multiple cavalry (up to 4, gaps break stacking)
+- Turn number and phase tracking
+- Retreat tracking infrastructure
 
 **Testing Requirements**:
 - Combat calculation tests for all unit combinations (85%+ coverage)
@@ -130,6 +132,15 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 - Combat accurately resolves attacks and retreats
 - Capture/retreat thresholds enforced correctly
 - Special mechanics (charges, stacking) work as specified
+
+**Implementation Status**: Complete
+- Combat module implemented in src/pykrieg/combat.py (100% coverage)
+- Turn/phase tracking added to Board class (100% coverage)
+- Retreat tracking methods added to Board class (100% coverage)
+- Comprehensive test suite with 91 tests (100% combat module coverage)
+- All 384 tests passing (99% overall coverage)
+- Ruff linting: All checks passed
+- Mypy type checking: Success, no issues
 
 ---
 
@@ -816,4 +827,4 @@ This roadmap is guided by these principles:
 
 *Current version: Development phase*
 
-For the latest status of each item, please check the [Project Board](https://github.com/ssjmarx/pykrieg/projects) or [Issues](https://github.com/ssjmarx/pykrieg/issues).
+For the latest status of each item, please check the [Issues](https://github.com/ssjmarx/pykrieg/issues).

@@ -50,3 +50,5 @@ Basic usage::
    board2 = Fen.fen_to_board(fen)
 
 For more information, see the GitHub repository: https://github.com/ssjmarx/pykrieg
+
+For the full documentation, visit https://pykrieg.readthedocs.io/en/latest/

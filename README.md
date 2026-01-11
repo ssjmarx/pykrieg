@@ -1,5 +1,7 @@
 # Pykrieg
 
+[![PyPI Version](https://img.shields.io/pypi/v/pykrieg?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/pykrieg/)
+
 A Pythonic wargame engine for Guy Debord's *Le Jeu de la Guerre* (A Game of War).
 
 ## About
@@ -85,6 +87,32 @@ from pykrieg import get_movement_range, can_move
 unit = board.get_unit(7, 12)
 print(f"Movement range: {get_movement_range(unit)}")  # 0, 1, or 2
 print(f"Can move: {can_move(unit)}")  # True or False
+
+# Combat
+from pykrieg import calculate_combat, execute_capture, CombatOutcome
+
+# Calculate combat for a target square
+result = calculate_combat(board, 5, 12, attacker='NORTH', defender='SOUTH')
+print(f"Attack Power: {result['attack_power']}")
+print(f"Defense Power: {result['defense_power']}")
+print(f"Outcome: {result['outcome'].value}")
+
+# Capture a unit if attack was successful
+if result['outcome'] == CombatOutcome.CAPTURE:
+    captured_unit = execute_capture(board, 5, 12)
+    print(f"Captured {captured_unit.unit_type}!")
+
+# Or use Board convenience methods
+result = board.calculate_combat(5, 12, 'NORTH', 'SOUTH')
+captured = board.execute_capture(5, 12)
+
+# Check turn tracking
+print(f"Current turn: {board.turn_number}")
+print(f"Current player: {board.turn}")
+print(f"Current phase: {board.current_phase}")  # 'M' for movement, 'B' for battle
+
+# Increment turn (switches player and resets phase)
+board.increment_turn()
 ```
 
 ## Documentation

@@ -4,12 +4,24 @@ Pykrieg - A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre.
 This package is currently in early development. Check back soon for updates!
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 
-from . import board, constants, fen, movement, types
+from . import board, combat, constants, fen, movement, types
 from .board import Board
+from .combat import (
+    CombatOutcome,
+    calculate_attack_power,
+    calculate_combat,
+    calculate_defense_power,
+    can_attack,
+    execute_capture,
+    get_directions,
+    get_line_units,
+    is_adjacent,
+    resolve_combat,
+)
 from .fen import Fen
 from .movement import (
     can_move,
@@ -32,6 +44,7 @@ from .pieces import (
 
 __all__ = [
     'board',
+    'combat',
     'constants',
     'fen',
     'types',
@@ -52,4 +65,14 @@ __all__ = [
     'execute_move',
     'get_movement_range',
     'can_move',
+    'CombatOutcome',
+    'calculate_attack_power',
+    'calculate_defense_power',
+    'calculate_combat',
+    'resolve_combat',
+    'execute_capture',
+    'can_attack',
+    'get_directions',
+    'get_line_units',
+    'is_adjacent',
 ]

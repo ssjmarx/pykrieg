@@ -35,6 +35,9 @@ class Board:
         self._board: List[List[Any]] = [[None for _ in range(self._cols)]
                                         for _ in range(self._rows)]
         self._turn = constants.PLAYER_NORTH  # Starting player
+        self._turn_number = 1  # Track turn number
+        self._current_phase = constants.PHASE_MOVEMENT  # Track current phase
+        self._pending_retreats: List[Tuple[int, int]] = []  # Track pending retreats
 
     @property
     def rows(self) -> int:
@@ -513,3 +516,128 @@ class Board:
         """
         from .movement import execute_move
         return execute_move(self, from_row, from_col, to_row, to_col)
+
+    # Combat convenience methods
+
+    def calculate_combat(self, target_row: int, target_col: int,
+                        attacker: str, defender: str) -> Dict[str, object]:
+        """Calculate complete combat scenario.
+
+        Convenience method that wraps combat.calculate_combat.
+
+        Args:
+            target_row: Target row (0-19)
+            target_col: Target column (0-24)
+            attacker: 'NORTH' or 'SOUTH'
+            defender: 'NORTH' or 'SOUTH'
+
+        Returns:
+            Dictionary with combat results
+        """
+        from .combat import calculate_combat
+        return calculate_combat(self, target_row, target_col, attacker, defender)
+
+    def execute_capture(self, target_row: int, target_col: int) -> object:
+        """Execute a capture (remove target unit from board).
+
+        Convenience method that wraps combat.execute_capture.
+
+        Args:
+            target_row: Target row (0-19)
+            target_col: Target column (0-24)
+
+        Returns:
+            The captured Unit object
+        """
+        from .combat import execute_capture
+        return execute_capture(self, target_row, target_col)
+
+    # Retreat tracking methods
+
+    def add_pending_retreat(self, row: int, col: int) -> None:
+        """Add unit to pending retreats.
+
+        This is called when combat resolves to RETREAT outcome.
+        The actual retreat execution happens at the start of the defender's
+        next turn (enforced by turn management in 0.1.4).
+
+        Note: Retreats are tracked in-memory and not persisted in KFEN format.
+        They are resolved each turn by turn management system.
+
+        Args:
+            row: Row of unit that must retreat
+            col: Column of unit that must retreat
+
+        Raises:
+            ValueError: If no unit at position
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+
+        unit = self.get_unit(row, col)
+        if unit is None:
+            raise ValueError(f"No unit at ({row}, {col}) to mark for retreat")
+
+        # Check if already in retreat list to avoid duplicates
+        if (row, col) not in self._pending_retreats:
+            self._pending_retreats.append((row, col))
+
+    def get_pending_retreats(self) -> List[Tuple[int, int]]:
+        """Get all pending retreats.
+
+        Returns:
+            List of (row, col) tuples for units that must retreat
+        """
+        return list(self._pending_retreats)
+
+    def clear_pending_retreats(self) -> None:
+        """Clear all pending retreats after resolution.
+
+        This should be called after all retreats have been processed
+        at the start of a turn.
+        """
+        self._pending_retreats.clear()
+
+    def has_pending_retreat(self, row: int, col: int) -> bool:
+        """Check if unit at position must retreat.
+
+        Args:
+            row: Row of unit to check
+            col: Column of unit to check
+
+        Returns:
+            True if unit at (row, col) must retreat, False otherwise
+        """
+        return (row, col) in self._pending_retreats
+
+    # Turn tracking methods
+
+    @property
+    def turn_number(self) -> int:
+        """Return current turn number."""
+        return self._turn_number
+
+    @turn_number.setter
+    def turn_number(self, value: int) -> None:
+        """Set turn number."""
+        self._turn_number = value
+
+    @property
+    def current_phase(self) -> str:
+        """Return current turn phase."""
+        return self._current_phase
+
+    @current_phase.setter
+    def current_phase(self, value: str) -> None:
+        """Set current turn phase."""
+        self._current_phase = value
+
+    def increment_turn(self) -> None:
+        """Increment turn number and switch player."""
+        self._turn_number += 1
+        self._turn = (
+            constants.PLAYER_SOUTH
+            if self._turn == constants.PLAYER_NORTH
+            else constants.PLAYER_NORTH
+        )
+        self._current_phase = constants.PHASE_MOVEMENT  # Reset to movement phase

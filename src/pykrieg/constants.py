@@ -58,9 +58,9 @@ FEN_SYMBOLS = {
 # Reverse mapping from FEN symbol to unit type
 SYMBOL_TO_UNIT = {v: k for k, v in FEN_SYMBOLS.items()}
 
-# Turn phases (for future use)
+# Turn phases
 PHASE_MOVEMENT = 'M'
-PHASE_ATTACK = 'A'
+PHASE_BATTLE = 'B'
 
 # Maximum moves per turn
 MAX_MOVES_PER_TURN = 5
