@@ -167,6 +167,14 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 - Board state can be exported after any turn
 - Users can import, move for both players, export, and calculate battles
 
+**Implementation Status**: Complete
+- Turn management methods implemented in src/pykrieg/board.py (99% coverage)
+- Turn state utilities implemented in src/pykrieg/turn.py (100% coverage)
+- Comprehensive test suite with 62 tests achieving 100% coverage
+- All 446 tests passing (99% overall coverage)
+- Ruff linting: All checks passed
+- Mypy type checking: Success, no issues
+
 ---
 
 ### 0.1.5 - Console Interface (Basic)

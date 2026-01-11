@@ -6,7 +6,7 @@ coordinate validation, and piece management.
 """
 
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from . import constants
 
@@ -38,6 +38,11 @@ class Board:
         self._turn_number = 1  # Track turn number
         self._current_phase = constants.PHASE_MOVEMENT  # Track current phase
         self._pending_retreats: List[Tuple[int, int]] = []  # Track pending retreats
+
+        # New for 0.1.4: Per-turn tracking
+        self._moved_units: Set[Tuple[int, int]] = set()  # Positions units moved FROM this turn
+        self._moved_unit_ids: Set[int] = set()  # IDs of units that moved this turn
+        self._attacks_this_turn: int = 0  # Attacks made this turn
 
     @property
     def rows(self) -> int:
@@ -609,6 +614,342 @@ class Board:
             True if unit at (row, col) must retreat, False otherwise
         """
         return (row, col) in self._pending_retreats
+
+    # Turn management methods for 0.1.4
+
+    def has_moved_this_turn(self, row: int, col: int) -> bool:
+        """Check if a move originated from this position this turn.
+
+        Args:
+            row: Row of position to check
+            col: Column of position to check
+
+        Returns:
+            True if a unit moved FROM this position this turn, False otherwise
+        """
+        return (row, col) in self._moved_units
+
+    def get_moves_this_turn(self) -> int:
+        """Get number of units moved this turn.
+
+        Returns:
+            Number of units moved (0-5)
+        """
+        return len(self._moved_units)
+
+    def can_move_more(self) -> bool:
+        """Check if player can move more units this turn.
+
+        Returns:
+            True if fewer than 5 units have been moved, False otherwise
+        """
+        return len(self._moved_units) < constants.MAX_MOVES_PER_TURN
+
+    def get_attacks_this_turn(self) -> int:
+        """Get number of attacks made this turn.
+
+        Returns:
+            Number of attacks made (0 or 1)
+        """
+        return self._attacks_this_turn
+
+    def can_attack_more(self) -> bool:
+        """Check if player can attack more this turn.
+
+        Returns:
+            True if 0 attacks have been made, False otherwise
+        """
+        return self._attacks_this_turn < constants.MAX_ATTACKS_PER_TURN
+
+    def validate_move(self, from_row: int, from_col: int,
+                     to_row: int, to_col: int) -> bool:
+        """Validate a move according to turn rules.
+
+        Checks:
+        1. It's the movement phase
+        2. The unit belongs to the current player
+        3. The unit hasn't moved yet this turn
+        4. The player hasn't moved 5 units yet
+        5. The move is legally valid (pseudo-legal check)
+
+        Args:
+            from_row: Source row (0-19)
+            from_col: Source column (0-24)
+            to_row: Target row (0-19)
+            to_col: Target column (0-24)
+
+        Returns:
+            True if move is valid according to turn rules, False otherwise
+        """
+        # Check phase
+        if self._current_phase != constants.PHASE_MOVEMENT:
+            return False
+
+        # Check unit ownership
+        unit = self.get_unit(from_row, from_col)
+        if unit is None:
+            return False
+        if unit and unit.owner != self._turn:  # type: ignore[attr-defined]
+            return False
+
+        # Check if unit already moved (by checking unit ID)
+        unit_id = id(unit)
+        if unit_id in self._moved_unit_ids:
+            return False
+
+        # Check move limit
+        if len(self._moved_units) >= constants.MAX_MOVES_PER_TURN:
+            return False
+
+        # Check move legality
+        from .movement import is_valid_move
+        return is_valid_move(self, from_row, from_col, to_row, to_col)
+
+    def make_turn_move(self, from_row: int, from_col: int,
+                       to_row: int, to_col: int) -> object:
+        """Make a move with turn validation and tracking.
+
+        This method:
+        1. Validates the move according to turn rules
+        2. Executes the move
+        3. Tracks that the unit has moved this turn
+
+        Args:
+            from_row: Source row (0-19)
+            from_col: Source column (0-24)
+            to_row: Target row (0-19)
+            to_col: Target column (0-24)
+
+        Returns:
+            The Unit object that was moved
+
+        Raises:
+            ValueError: If the move is invalid according to turn rules
+        """
+        # Validate move
+        if not self.validate_move(from_row, from_col, to_row, to_col):
+            raise ValueError(
+                f"Invalid turn move from ({from_row}, {from_col}) to ({to_row}, {to_col})"
+            )
+
+        # Get unit before move to track its ID
+        unit = self.get_unit(from_row, from_col)
+        unit_id = id(unit)
+
+        # Execute move
+        from .movement import execute_move
+        moved_unit = execute_move(self, from_row, from_col, to_row, to_col)
+
+        # Track move - both position and unit ID
+        self._moved_units.add((from_row, from_col))
+        self._moved_unit_ids.add(unit_id)
+
+        return moved_unit
+
+    def validate_attack(self, target_row: int, target_col: int) -> bool:
+        """Validate an attack according to turn rules.
+
+        Checks:
+        1. It's the battle phase
+        2. The current player hasn't attacked yet
+        3. There's at least one attacking unit
+
+        Args:
+            target_row: Target row (0-19)
+            target_col: Target column (0-24)
+
+        Returns:
+            True if attack is valid according to turn rules, False otherwise
+        """
+        # Check phase
+        if self._current_phase != constants.PHASE_BATTLE:
+            return False
+
+        # Check attack limit
+        if self._attacks_this_turn >= constants.MAX_ATTACKS_PER_TURN:
+            return False
+
+        # Check if attacker has units (can_attack will check this)
+        from .combat import can_attack
+        return can_attack(self, target_row, target_col, self._turn)
+
+    def make_turn_attack(self, target_row: int, target_col: int) -> Dict[str, object]:
+        """Make an attack with turn validation and tracking.
+
+        This method:
+        1. Validates the attack according to turn rules
+        2. Calculates combat result
+        3. Executes capture if applicable
+        4. Marks defender for retreat if applicable
+        5. Tracks that an attack has been made
+
+        Args:
+            target_row: Target row (0-19)
+            target_col: Target column (0-24)
+
+        Returns:
+            Dictionary with combat results
+
+        Raises:
+            ValueError: If the attack is invalid according to turn rules
+        """
+        # Validate attack
+        if not self.validate_attack(target_row, target_col):
+            raise ValueError(
+                f"Invalid turn attack at ({target_row}, {target_col})"
+            )
+
+        # Calculate combat
+        defender = (
+            constants.PLAYER_SOUTH
+            if self._turn == constants.PLAYER_NORTH
+            else constants.PLAYER_NORTH
+        )
+        result = self.calculate_combat(target_row, target_col, self._turn, defender)
+
+        # Handle outcome
+        from .combat import CombatOutcome
+        outcome = result['outcome']
+        if outcome == CombatOutcome.CAPTURE:
+            # Execute capture
+            self.execute_capture(target_row, target_col)
+        elif outcome == CombatOutcome.RETREAT:
+            # Mark defender for retreat
+            self.add_pending_retreat(target_row, target_col)
+
+        # Track attack
+        self._attacks_this_turn += 1
+
+        return result
+
+    def pass_attack(self) -> None:
+        """Pass the attack phase.
+
+        This method:
+        1. Validates it's the battle phase
+        2. Marks that an attack has been made (pass counts)
+
+        Raises:
+            ValueError: If not in battle phase or already attacked
+        """
+        if self._current_phase != constants.PHASE_BATTLE:
+            raise ValueError("Cannot pass attack: not in battle phase")
+
+        if self._attacks_this_turn >= constants.MAX_ATTACKS_PER_TURN:
+            raise ValueError("Cannot pass attack: already attacked")
+
+        self._attacks_this_turn += 1
+
+    def switch_to_battle_phase(self) -> None:
+        """Switch from movement phase to battle phase.
+
+        Raises:
+            ValueError: If not in movement phase
+        """
+        if self._current_phase != constants.PHASE_MOVEMENT:
+            raise ValueError("Cannot switch to battle phase: not in movement phase")
+
+        self._current_phase = constants.PHASE_BATTLE
+
+    def resolve_retreats(self) -> None:
+        """Resolve pending retreats at start of turn.
+
+        This method checks for pending retreats and enforces retreat rules:
+        1. For each unit that must retreat, find valid retreat squares
+        2. If valid retreat exists, mark unit as having moved (cannot attack)
+        3. If no valid retreat exists, capture (destroy) the unit
+        4. Clear pending retreats after resolution
+
+        Note:
+            - This is called at the start of the defender's turn
+            - Retreating units cannot attack during this turn
+            - Units marked as retreated are tracked in _moved_units
+
+        TODO:
+            - In 0.2.0, add terrain validation to retreat moves
+            - In 0.2.0, check online/offline status for retreat
+        """
+        # Only resolve retreats for the current player's units
+        retreat_positions = list(self._pending_retreats)
+
+        for row, col in retreat_positions:
+            unit = self.get_unit(row, col)
+            if unit is None:
+                # Unit already captured, skip
+                continue
+
+            # Only resolve retreats for current player
+            if unit and getattr(unit, 'owner', None) != self._turn:
+                continue
+
+            # Find valid retreat squares
+            # In 0.1.4, we use basic movement rules (terrain-independent)
+            from .movement import generate_moves
+            valid_moves = generate_moves(self, row, col)
+
+            if valid_moves:
+                # Mark unit as having moved (cannot attack this turn)
+                self._moved_units.add((row, col))
+                self._moved_unit_ids.add(id(unit))
+            else:
+                # No valid retreat: capture the unit
+                self.execute_capture(row, col)
+
+        # Clear pending retreats for current player
+        self._pending_retreats = [
+            pos for pos in self._pending_retreats
+            if pos not in retreat_positions
+        ]
+
+    def end_turn(self) -> None:
+        """End the current turn and switch to the next player.
+
+        This method:
+        1. Clears moved unit tracking
+        2. Clears attack counter
+        3. Switches to the other player
+        4. Resets phase to movement
+        5. Increments turn number
+        6. Resolves any pending retreats for the new player
+
+        Note:
+            - Retreat resolution happens at the start of the new player's turn
+            - Turn number increments on each player switch
+        """
+        # Switch player and increment turn
+        self.increment_turn()
+
+        # Clear per-turn state for new player
+        self._moved_units.clear()
+        self._moved_unit_ids.clear()
+        self._attacks_this_turn = 0
+
+        # Resolve retreats for new player
+        self.resolve_retreats()
+
+    def reset_turn_state(self) -> None:
+        """Reset turn state without changing turn number or player.
+
+        This method is useful for:
+        - Undo functionality
+        - Testing scenarios
+        - Loading from FEN
+
+        Resets:
+        - Moved units tracking
+        - Attack counter
+        - Current phase (to movement)
+
+        Does NOT reset:
+        - Turn number
+        - Current player
+        - Pending retreats
+        - Board position
+        """
+        self._moved_units.clear()
+        self._moved_unit_ids.clear()
+        self._attacks_this_turn = 0
+        self._current_phase = constants.PHASE_MOVEMENT
 
     # Turn tracking methods
 

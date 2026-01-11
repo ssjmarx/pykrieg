@@ -31,7 +31,7 @@ def test_board_can_be_created_and_loaded():
 
     # Verify FEN structure
     parts = fen.split('/')
-    assert len(parts) == 23  # 20 rows + 3 metadata
+    assert len(parts) == 25  # 20 rows + 5 metadata (turn, phase, actions, turn_number, retreats)
     assert '/N/' in fen or '/S/' in fen  # Has turn info
 
     # Load from FEN

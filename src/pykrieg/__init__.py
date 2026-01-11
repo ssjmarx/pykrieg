@@ -4,7 +4,7 @@ Pykrieg - A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre.
 This package is currently in early development. Check back soon for updates!
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 
@@ -41,6 +41,14 @@ from .pieces import (
     Unit,
     create_piece,
 )
+from .turn import (
+    TurnState,
+    TurnValidationError,
+    can_end_turn,
+    get_turn_state,
+    get_turn_summary,
+    validate_turn_action,
+)
 
 __all__ = [
     'board',
@@ -49,6 +57,7 @@ __all__ = [
     'fen',
     'types',
     'movement',
+    'turn',
     'Board',
     'Fen',
     'Unit',
@@ -75,4 +84,10 @@ __all__ = [
     'get_directions',
     'get_line_units',
     'is_adjacent',
+    'TurnState',
+    'TurnValidationError',
+    'get_turn_state',
+    'validate_turn_action',
+    'can_end_turn',
+    'get_turn_summary',
 ]

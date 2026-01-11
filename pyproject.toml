@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykrieg"
-version = "0.1.3"
+version = "0.1.4"
 description = "A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -92,6 +92,9 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
+exclude = [
+    "venv",
+]
 
 [tool.black]
 line-length = 100

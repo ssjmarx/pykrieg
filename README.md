@@ -106,13 +106,160 @@ if result['outcome'] == CombatOutcome.CAPTURE:
 result = board.calculate_combat(5, 12, 'NORTH', 'SOUTH')
 captured = board.execute_capture(5, 12)
 
-# Check turn tracking
-print(f"Current turn: {board.turn_number}")
-print(f"Current player: {board.turn}")
-print(f"Current phase: {board.current_phase}")  # 'M' for movement, 'B' for battle
+## Turn Management
 
-# Increment turn (switches player and resets phase)
-board.increment_turn()
+Pykrieg enforces turn rules to ensure fair play, following the game's structure of movement phase (up to 5 units) and battle phase (1 attack or pass).
+
+### Movement Phase
+
+During the movement phase, you can move up to 5 units:
+
+```python
+from pykrieg import Board
+
+board = Board()
+
+# Place units
+board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+board.create_and_place_unit(5, 11, "CAVALRY", "NORTH")
+board.create_and_place_unit(5, 12, "CANNON", "NORTH")
+
+# Make moves (enforces 5-unit limit)
+board.make_turn_move(5, 10, 6, 10)
+board.make_turn_move(5, 11, 6, 11)
+board.make_turn_move(5, 12, 6, 12)
+
+# Check move status
+print(f"Moves made: {board.get_moves_this_turn()}")  # 3
+print(f"Moves remaining: {5 - board.get_moves_this_turn()}")  # 2
+print(f"Can move more: {board.can_move_more()}")  # True
+
+# Check if a specific unit already moved
+print(f"Did (5, 10) move? {board.has_moved_this_turn(5, 10)}")  # True
+```
+
+### Battle Phase
+
+After movement, switch to the battle phase to attack or pass:
+
+```python
+# Switch to battle phase
+board.switch_to_battle_phase()
+print(f"Current phase: {board.current_phase}")  # 'B'
+
+# Attack a target
+result = board.make_turn_attack(1, 10)
+print(f"Attack result: {result['outcome'].value}")  # CAPTURE, RETREAT, or NEUTRAL
+print(f"Attacks made: {board.get_attacks_this_turn()}")  # 1
+print(f"Can attack more: {board.can_attack_more()}")  # False
+
+# Or pass (skip attack)
+board.pass_attack()
+```
+
+### Turn Sequence
+
+Complete a full turn by moving, attacking, and ending:
+
+```python
+from pykrieg import Board, get_turn_summary
+
+board = Board()
+
+# Setup: NORTH's turn
+board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+board.create_and_place_unit(5, 11, "CAVALRY", "NORTH")
+board.create_and_place_unit(5, 12, "CANNON", "SOUTH")
+
+# Movement Phase
+board.make_turn_move(5, 10, 6, 10)
+board.make_turn_move(5, 11, 6, 11)
+
+# Switch to battle
+board.switch_to_battle_phase()
+
+# Attack
+result = board.make_turn_attack(5, 12)
+print(f"Outcome: {result['outcome'].value}")
+
+# End turn (switches to SOUTH, resets phase, resolves retreats)
+board.end_turn()
+
+# Check new turn state
+print(f"Turn {board.turn_number}, {board.turn}'s turn")
+print(f"Phase: {board.current_phase}")  # 'M' (movement)
+```
+
+### Turn Summary
+
+Get a detailed summary of the current turn:
+
+```python
+from pykrieg import get_turn_summary
+
+summary = get_turn_summary(board)
+print(f"Turn: {summary['turn_number']}")
+print(f"Player: {summary['current_player']}")
+print(f"Phase: {summary['current_phase']}")
+print(f"Moves: {summary['moves_made']}/{summary['moves_made'] + summary['moves_remaining']}")
+print(f"Attacks: {summary['attacks_made']}/{summary['attacks_made'] + summary['attacks_remaining']}")
+print(f"Pending retreats: {summary['pending_retreats']}")
+```
+
+### Retreat Management
+
+When a combat results in RETREAT, the unit must retreat at the start of its next turn:
+
+```python
+# Simulate a retreat result (from combat)
+board.create_and_place_unit(15, 10, "INFANTRY", "SOUTH")
+board.add_pending_retreat(15, 10)
+
+# End NORTH's turn, resolve SOUTH's retreats
+board.end_turn()
+
+# Check retreat status (unit marked as moved, cannot attack)
+print(f"Pending retreats: {board.get_pending_retreats()}")
+print(f"Unit at (15, 10) has moved: {board.has_moved_this_turn(15, 10)}")
+```
+
+### Turn State with FEN
+
+Turn state is preserved in FEN format:
+
+```python
+from pykrieg import Fen
+
+# Export board with turn state
+fen = Fen.board_to_fen(board)
+print(fen)  # Includes turn_number, phase, and retreats
+
+# Import and restore turn state
+board2 = Fen.fen_to_board(fen)
+print(f"Restored turn: {board2.turn_number}")
+print(f"Restored phase: {board2.current_phase}")
+print(f"Restored player: {board2.turn}")
+```
+
+### Turn Validation
+
+The board validates all turn actions:
+
+```python
+# Validate a move before making it
+if board.validate_move(5, 10, 6, 10):
+    board.make_turn_move(5, 10, 6, 10)
+
+# Validate an attack before making it
+if board.validate_attack(1, 12):
+    result = board.make_turn_attack(1, 12)
+
+# Check if turn can be ended
+from pykrieg import can_end_turn
+if can_end_turn(board):
+    board.end_turn()
+```
+
 ```
 
 ## Documentation

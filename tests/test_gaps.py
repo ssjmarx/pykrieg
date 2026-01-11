@@ -297,12 +297,12 @@ class TestKFENSpecCompliance:
     """Tests for explicit KFEN specification compliance."""
 
     def test_fen_structure_23_parts(self):
-        """Test FEN has exactly 23 parts (20 rows + 3 metadata)."""
+        """Test FEN has exactly 25 parts (20 rows + 5 metadata with turn state)."""
         board = Board()
         fen = Fen.board_to_fen(board)
         parts = fen.split('/')
 
-        assert len(parts) == 23, f"Expected 23 parts, got {len(parts)}"
+        assert len(parts) == 25, f"Expected 25 parts, got {len(parts)}"
 
         # First 20 parts should be board data (25 chars each)
         for i in range(20):

@@ -18,7 +18,7 @@ class TestFenSerialization:
 
         # Should have 20 rows of 25 underscores each
         parts = fen.split('/')
-        assert len(parts) == 23  # 20 rows + 3 metadata
+        assert len(parts) == 25  # 20 rows + 5 metadata (turn, phase, actions, turn_number, retreats)
 
         # Check board data is all underscores
         board_data = parts[:20]
@@ -215,9 +215,12 @@ class TestFenSerialization:
 
         parts = fen.split('/')
         # parts[20] is turn, parts[21] is phase ('M'), parts[22] is actions ('[]')
-        assert len(parts) == 23
+        # parts[23] is turn_number ('1'), parts[24] is retreats ('[]')
+        assert len(parts) == 25
         assert parts[21] == 'M'  # Movement phase
         assert parts[22] == '[]'  # No actions
+        assert parts[23] == '1'  # Turn number
+        assert parts[24] == '[]'  # No retreats
 
     def test_fen_piece_symbols(self):
         """Test piece symbol mapping is correct."""
