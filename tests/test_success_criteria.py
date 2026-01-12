@@ -24,7 +24,7 @@ def test_board_can_be_created_and_loaded():
     ]
 
     for row, col, piece_type, owner in test_positions:
-        board1.set_piece(row, col, {'type': piece_type, 'owner': owner})
+        board1.create_and_place_unit(row, col, piece_type, owner)
 
     # Save to FEN
     fen = Fen.board_to_fen(board1)
@@ -39,10 +39,10 @@ def test_board_can_be_created_and_loaded():
 
     # Verify all positions match
     for row, col, piece_type, owner in test_positions:
-        piece = board2.get_piece(row, col)
-        assert piece is not None, f"No piece at ({row}, {col})"
-        assert piece['type'] == piece_type, f"Wrong type at ({row}, {col})"
-        assert piece['owner'] == owner, f"Wrong owner at ({row}, {col})"
+        unit = board2.get_unit(row, col)
+        assert unit is not None, f"No unit at ({row}, {col})"
+        assert unit.unit_type == piece_type, f"Wrong type at ({row}, {col})"
+        assert unit.owner == owner, f"Wrong owner at ({row}, {col})"
 
     # Verify turn matches
     assert board1.turn == board2.turn
@@ -75,14 +75,14 @@ def test_all_core_data_structures_implemented():
     assert len(board.get_territory_squares('NORTH')) == 250
     assert len(board.get_territory_squares('SOUTH')) == 250
 
-    # Test piece management
-    board.set_piece(5, 10, {'type': 'INFANTRY', 'owner': 'NORTH'})
-    piece = board.get_piece(5, 10)
-    assert piece['type'] == 'INFANTRY'
-    assert piece['owner'] == 'NORTH'
+    # Test unit management
+    board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
+    unit = board.get_unit(5, 10)
+    assert unit.unit_type == 'INFANTRY'
+    assert unit.owner == 'NORTH'
 
     board.clear_square(5, 10)
-    assert board.get_piece(5, 10) is None
+    assert board.get_unit(5, 10) is None
 
     # Test coordinate validation
     assert board.is_valid_square(0, 0) is True
@@ -97,14 +97,14 @@ def test_all_core_data_structures_implemented():
     board2 = Fen.fen_to_board(fen)
     assert board2.turn == board.turn
 
-    # Test FEN with pieces
-    board.set_piece(0, 0, {'type': 'CAVALRY', 'owner': 'NORTH'})
-    board.set_piece(19, 24, {'type': 'CANNON', 'owner': 'SOUTH'})
+    # Test FEN with units
+    board.create_and_place_unit(0, 0, 'CAVALRY', 'NORTH')
+    board.create_and_place_unit(19, 24, 'CANNON', 'SOUTH')
     fen = Fen.board_to_fen(board)
     board3 = Fen.fen_to_board(fen)
 
-    assert board3.get_piece(0, 0)['type'] == 'CAVALRY'
-    assert board3.get_piece(19, 24)['type'] == 'CANNON'
+    assert board3.get_unit(0, 0).unit_type == 'CAVALRY'
+    assert board3.get_unit(19, 24).unit_type == 'CANNON'
 
     # Test turn tracking
     assert board.turn_side() == 'NORTH'
@@ -225,10 +225,10 @@ def test_acceptance_criteria_fen_format():
     """Verify acceptance criterion: FEN format can serialize/deserialize board states accurately."""
     board1 = Board()
 
-    # Add test pieces
-    board1.set_piece(0, 0, {'type': 'INFANTRY', 'owner': 'NORTH'})
-    board1.set_piece(19, 24, {'type': 'CAVALRY', 'owner': 'SOUTH'})
-    board1.set_piece(10, 12, {'type': 'CANNON', 'owner': 'NORTH'})
+    # Add test units
+    board1.create_and_place_unit(0, 0, 'INFANTRY', 'NORTH')
+    board1.create_and_place_unit(19, 24, 'CAVALRY', 'SOUTH')
+    board1.create_and_place_unit(10, 12, 'CANNON', 'NORTH')
 
     # Serialize
     fen = Fen.board_to_fen(board1)
@@ -241,10 +241,17 @@ def test_acceptance_criteria_fen_format():
     # Deserialize
     board2 = Fen.fen_to_board(fen)
 
-    # Verify all pieces match
-    assert board2.get_piece(0, 0) == {'type': 'INFANTRY', 'owner': 'NORTH'}
-    assert board2.get_piece(19, 24) == {'type': 'CAVALRY', 'owner': 'SOUTH'}
-    assert board2.get_piece(10, 12) == {'type': 'CANNON', 'owner': 'NORTH'}
+    # Verify all units match (compare unit attributes)
+    unit0 = board2.get_unit(0, 0)
+    unit1 = board2.get_unit(19, 24)
+    unit2 = board2.get_unit(10, 12)
+
+    assert unit0.unit_type == 'INFANTRY'
+    assert unit0.owner == 'NORTH'
+    assert unit1.unit_type == 'CAVALRY'
+    assert unit1.owner == 'SOUTH'
+    assert unit2.unit_type == 'CANNON'
+    assert unit2.owner == 'NORTH'
 
     # Verify turn is preserved
     assert board1.turn == board2.turn
@@ -266,8 +273,8 @@ def test_acceptance_criteria_all_unit_types():
 
     # Add all unit types
     for i, unit_type in enumerate(unit_types):
-        board.set_piece(0, i, {'type': unit_type, 'owner': 'NORTH'})
-        board.set_piece(19, i, {'type': unit_type, 'owner': 'SOUTH'})
+        board.create_and_place_unit(0, i, unit_type, 'NORTH')
+        board.create_and_place_unit(19, i, unit_type, 'SOUTH')
 
     # Serialize and deserialize
     fen = Fen.board_to_fen(board)
@@ -275,11 +282,11 @@ def test_acceptance_criteria_all_unit_types():
 
     # Verify all unit types preserved
     for i, unit_type in enumerate(unit_types):
-        north_piece = board2.get_piece(0, i)
-        south_piece = board2.get_piece(19, i)
+        north_unit = board2.get_unit(0, i)
+        south_unit = board2.get_unit(19, i)
 
-        assert north_piece['type'] == unit_type
-        assert north_piece['owner'] == 'NORTH'
+        assert north_unit.unit_type == unit_type
+        assert north_unit.owner == 'NORTH'
 
-        assert south_piece['type'] == unit_type
-        assert south_piece['owner'] == 'SOUTH'
+        assert south_unit.unit_type == unit_type
+        assert south_unit.owner == 'SOUTH'

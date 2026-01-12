@@ -16,8 +16,8 @@ def test_full_board_serialization():
         for col in range(board1.cols):
             owner = 'NORTH' if row < board1.territory_boundary else 'SOUTH'
             # Alternate unit types
-            piece_type = unit_types[(row + col) % len(unit_types)]
-            board1.set_piece(row, col, {'type': piece_type, 'owner': owner})
+            unit_type = unit_types[(row + col) % len(unit_types)]
+            board1.create_and_place_unit(row, col, unit_type, owner)
 
     # Serialize
     fen = Fen.board_to_fen(board1)
@@ -25,12 +25,17 @@ def test_full_board_serialization():
     # Deserialize
     board2 = Fen.fen_to_board(fen)
 
-    # Verify all pieces match
+    # Verify all pieces match (compare unit_type and owner)
     for row in range(board1.rows):
         for col in range(board1.cols):
-            piece1 = board1.get_piece(row, col)
-            piece2 = board2.get_piece(row, col)
-            assert piece1 == piece2, f"Mismatch at ({row}, {col})"
+            unit1 = board1.get_unit(row, col)
+            unit2 = board2.get_unit(row, col)
+            if unit1 is None and unit2 is None:
+                continue
+            if unit1 is None or unit2 is None:
+                raise AssertionError(f"Mismatch at ({row}, {col})")
+            assert unit1.unit_type == unit2.unit_type, f"Mismatch at ({row}, {col})"
+            assert unit1.owner == unit2.owner, f"Mismatch at ({row}, {col})"
 
     # Verify turn is preserved
     assert board1.turn == board2.turn
@@ -60,7 +65,7 @@ def test_complex_scenario_with_turns():
     ]
 
     for row, col, piece_type, owner in pieces:
-        board1.set_piece(row, col, {'type': piece_type, 'owner': owner})
+        board1.create_and_place_unit(row, col, piece_type, owner)
 
     # Set turn to SOUTH
     board1._turn = 'SOUTH'
@@ -71,10 +76,10 @@ def test_complex_scenario_with_turns():
 
     # Verify all pieces
     for row, col, piece_type, owner in pieces:
-        piece = board2.get_piece(row, col)
-        assert piece is not None, f"No piece at ({row}, {col})"
-        assert piece['type'] == piece_type, f"Wrong type at ({row}, {col})"
-        assert piece['owner'] == owner, f"Wrong owner at ({row}, {col})"
+        unit = board2.get_unit(row, col)
+        assert unit is not None, f"No unit at ({row}, {col})"
+        assert unit.unit_type == piece_type, f"Wrong type at ({row}, {col})"
+        assert unit.owner == owner, f"Wrong owner at ({row}, {col})"
 
     # Verify turn
     assert board2.turn == 'SOUTH'
@@ -93,10 +98,10 @@ def test_territory_distribution():
 
     # Fill territories and verify
     for row, col in north_squares:
-        board.set_piece(row, col, {'type': 'INFANTRY', 'owner': 'NORTH'})
+        board.create_and_place_unit(row, col, 'INFANTRY', 'NORTH')
 
     for row, col in south_squares:
-        board.set_piece(row, col, {'type': 'INFANTRY', 'owner': 'SOUTH'})
+        board.create_and_place_unit(row, col, 'INFANTRY', 'SOUTH')
 
     # Serialize and verify
     fen = Fen.board_to_fen(board)
@@ -108,9 +113,9 @@ def test_territory_distribution():
 
     for row in range(board2.rows):
         for col in range(board2.cols):
-            piece = board2.get_piece(row, col)
-            if piece:
-                if piece['owner'] == 'NORTH':
+            unit = board2.get_unit(row, col)
+            if unit:
+                if unit.owner == 'NORTH':
                     north_count += 1
                 else:
                     south_count += 1
@@ -132,7 +137,7 @@ def test_multiple_serialization_roundtrips():
     ]
 
     for row, col, piece_type, owner in test_pieces:
-        board1.set_piece(row, col, {'type': piece_type, 'owner': owner})
+        board1.create_and_place_unit(row, col, piece_type, owner)
 
     # Perform multiple roundtrips
     board2 = Fen.fen_to_board(Fen.board_to_fen(board1))
@@ -142,15 +147,15 @@ def test_multiple_serialization_roundtrips():
 
     # Verify all boards are identical
     for row, col, piece_type, owner in test_pieces:
-        piece1 = board1.get_piece(row, col)
-        piece2 = board2.get_piece(row, col)
-        piece3 = board3.get_piece(row, col)
-        piece4 = board4.get_piece(row, col)
-        piece5 = board5.get_piece(row, col)
+        unit1 = board1.get_unit(row, col)
+        unit2 = board2.get_unit(row, col)
+        unit3 = board3.get_unit(row, col)
+        unit4 = board4.get_unit(row, col)
+        unit5 = board5.get_unit(row, col)
 
-        assert piece1 == piece2 == piece3 == piece4 == piece5
-        assert piece5['type'] == piece_type
-        assert piece5['owner'] == owner
+        assert unit1.unit_type == unit2.unit_type == unit3.unit_type == unit4.unit_type == unit5.unit_type
+        assert unit5.unit_type == piece_type
+        assert unit5.owner == owner
 
 
 def test_empty_board_operations():
@@ -160,7 +165,7 @@ def test_empty_board_operations():
     # Verify empty
     for row in range(board.rows):
         for col in range(board.cols):
-            assert board.get_piece(row, col) is None
+            assert board.get_unit(row, col) is None
 
     # Serialize empty board
     fen = Fen.board_to_fen(board)
@@ -173,28 +178,28 @@ def test_empty_board_operations():
     board2 = Fen.fen_to_board(fen)
     for row in range(board2.rows):
         for col in range(board2.cols):
-            assert board2.get_piece(row, col) is None
+            assert board2.get_unit(row, col) is None
 
 
 def test_board_with_single_piece():
     """Test board with single piece."""
     board1 = Board()
-    board1.set_piece(10, 12, {'type': 'CAVALRY', 'owner': 'SOUTH'})
+    board1.create_and_place_unit(10, 12, 'CAVALRY', 'SOUTH')
 
     fen = Fen.board_to_fen(board1)
     board2 = Fen.fen_to_board(fen)
 
     # Verify single piece
-    piece = board2.get_piece(10, 12)
-    assert piece is not None
-    assert piece['type'] == 'CAVALRY'
-    assert piece['owner'] == 'SOUTH'
+    unit = board2.get_unit(10, 12)
+    assert unit is not None
+    assert unit.unit_type == 'CAVALRY'
+    assert unit.owner == 'SOUTH'
 
     # Verify all other squares are empty
     count = 0
     for row in range(board2.rows):
         for col in range(board2.cols):
-            if board2.get_piece(row, col) is not None:
+            if board2.get_unit(row, col) is not None:
                 count += 1
 
     assert count == 1
@@ -205,11 +210,11 @@ def test_coordinate_integration():
     board = Board()
 
     # Add piece using tuple coordinates
-    board.set_piece(5, 10, {'type': 'INFANTRY', 'owner': 'NORTH'})
+    board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
 
     # Get piece
-    piece = board.get_piece(5, 10)
-    assert piece['type'] == 'INFANTRY'
+    unit = board.get_unit(5, 10)
+    assert unit.unit_type == 'INFANTRY'
 
     # Test spreadsheet coordinate conversion
     spreadsheet = Board.tuple_to_spreadsheet(5, 10)
@@ -222,7 +227,7 @@ def test_coordinate_integration():
     assert back_tuple == (5, 10)
 
     # Verify piece still accessible through different coordinate systems
-    assert board.get_piece(*back_tuple) == piece
+    assert board.get_unit(*back_tuple) == unit
 
 
 def test_turn_integration():
@@ -254,8 +259,8 @@ def test_all_unit_types_integration():
 
     col = 0
     for unit_type in unit_types:
-        board1.set_piece(0, col, {'type': unit_type, 'owner': 'NORTH'})
-        board1.set_piece(19, col, {'type': unit_type, 'owner': 'SOUTH'})
+        board1.create_and_place_unit(0, col, unit_type, 'NORTH')
+        board1.create_and_place_unit(19, col, unit_type, 'SOUTH')
         col += 1
 
     # Serialize
@@ -267,13 +272,13 @@ def test_all_unit_types_integration():
     # Verify all unit types
     col = 0
     for unit_type in unit_types:
-        north_piece = board2.get_piece(0, col)
-        south_piece = board2.get_piece(19, col)
+        north_unit = board2.get_unit(0, col)
+        south_unit = board2.get_unit(19, col)
 
-        assert north_piece['type'] == unit_type
-        assert north_piece['owner'] == 'NORTH'
+        assert north_unit.unit_type == unit_type
+        assert north_unit.owner == 'NORTH'
 
-        assert south_piece['type'] == unit_type
-        assert south_piece['owner'] == 'SOUTH'
+        assert south_unit.unit_type == unit_type
+        assert south_unit.owner == 'SOUTH'
 
         col += 1
