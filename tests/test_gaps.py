@@ -35,12 +35,17 @@ class TestStressTests:
         # Deserialize
         board2 = Fen.fen_to_board(fen)
 
-        # Verify all pieces match
+        # Verify all pieces match (board1 has dicts, board2 has Unit objects)
         for row in range(board1.rows):
             for col in range(board1.cols):
                 piece1 = board1.get_piece(row, col)
                 piece2 = board2.get_piece(row, col)
-                assert piece1 == piece2, f"Mismatch at ({row}, {col})"
+                # Compare by type and owner since piece1 is dict and piece2 is Unit
+                if isinstance(piece1, dict):
+                    assert piece2.unit_type == piece1['type'], f"Mismatch at ({row}, {col})"
+                    assert piece2.owner == piece1['owner'], f"Mismatch at ({row}, {col})"
+                else:
+                    assert piece1 == piece2, f"Mismatch at ({row}, {col})"
 
     def test_multiple_rapid_serializations(self):
         """Test 100 rapid serialization/deserialization cycles."""
@@ -52,8 +57,8 @@ class TestStressTests:
             fen = Fen.board_to_fen(board)
             board = Fen.fen_to_board(fen)
             piece = board.get_piece(5, 10)
-            assert piece['type'] == 'CAVALRY'
-            assert piece['owner'] == 'NORTH'
+            assert piece.unit_type == 'CAVALRY'
+            assert piece.owner == 'NORTH'
 
     def test_extreme_coordinate_conversions(self):
         """Test extreme spreadsheet coordinates."""
@@ -90,8 +95,8 @@ class TestStressTests:
                 expected_type = unit_types[(row * board.cols + col) % len(unit_types)]
                 expected_owner = 'NORTH' if row < board.territory_boundary else 'SOUTH'
                 piece = board2.get_piece(row, col)
-                assert piece['type'] == expected_type
-                assert piece['owner'] == expected_owner
+                assert piece.unit_type == expected_type
+                assert piece.owner == expected_owner
 
 
 class TestComprehensiveErrorPaths:
@@ -241,7 +246,11 @@ class TestPieceStructureValidation:
         for invalid_type in invalid_types:
             board.set_piece(5, 10, {'type': invalid_type, 'owner': 'NORTH'})
             piece = board.get_piece(5, 10)
-            assert piece['type'] == invalid_type, f"Invalid type {invalid_type} should be accepted"
+            # get_piece returns the stored dict for invalid types
+            if isinstance(piece, dict):
+                assert piece['type'] == invalid_type, f"Invalid type {invalid_type} should be accepted"
+            else:
+                assert piece.unit_type == invalid_type, f"Invalid type {invalid_type} should be accepted"
 
     def test_invalid_owners_accepted(self):
         """Test that invalid owners are accepted (0.1.0 design decision)."""
@@ -252,7 +261,11 @@ class TestPieceStructureValidation:
         for invalid_owner in invalid_owners:
             board.set_piece(5, 10, {'type': 'INFANTRY', 'owner': invalid_owner})
             piece = board.get_piece(5, 10)
-            assert piece['owner'] == invalid_owner, f"Invalid owner {invalid_owner} should be accepted"
+            # get_piece returns the stored dict for invalid owners
+            if isinstance(piece, dict):
+                assert piece['owner'] == invalid_owner, f"Invalid owner {invalid_owner} should be accepted"
+            else:
+                assert piece.owner == invalid_owner, f"Invalid owner {invalid_owner} should be accepted"
 
     def test_piece_with_extra_keys_accepted(self):
         """Test that pieces with extra keys are accepted."""
@@ -283,7 +296,7 @@ class TestPieceStructureValidation:
         board.set_piece(0, 0, {'type': 'INFANTRY', 'owner': 'NORTH'})
         fen = Fen.board_to_fen(board)
         board2 = Fen.fen_to_board(fen)
-        assert board2.get_piece(0, 0)['type'] == 'INFANTRY'
+        assert board2.get_piece(0, 0).unit_type == 'INFANTRY'
 
         # Invalid piece type causes FEN to fail
         board.set_piece(0, 1, {'type': 'DRAGON', 'owner': 'NORTH'})

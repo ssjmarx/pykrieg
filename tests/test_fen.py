@@ -82,8 +82,8 @@ class TestFenSerialization:
         for row, col, piece_type, owner in pieces:
             piece = board2.get_piece(row, col)
             assert piece is not None
-            assert piece['type'] == piece_type
-            assert piece['owner'] == owner
+            assert piece.unit_type == piece_type
+            assert piece.owner == owner
 
     def test_turn_in_fen(self):
         """Test turn information in FEN."""
@@ -164,15 +164,15 @@ class TestFenSerialization:
         col = 0
         for piece_type in pieces_north:
             piece = board2.get_piece(0, col)
-            assert piece['type'] == piece_type
-            assert piece['owner'] == 'NORTH'
+            assert piece.unit_type == piece_type
+            assert piece.owner == 'NORTH'
             col += 1
 
         col = 0
         for piece_type in pieces_south:
             piece = board2.get_piece(19, col)
-            assert piece['type'] == piece_type
-            assert piece['owner'] == 'SOUTH'
+            assert piece.unit_type == piece_type
+            assert piece.owner == 'SOUTH'
             col += 1
 
     def test_fen_multiple_roundtrip(self):
@@ -199,14 +199,16 @@ class TestFenSerialization:
 
         # Verify all boards are identical
         for row, col, piece_type, owner in positions:
-            piece1 = board1.get_piece(row, col)
+            board1.get_piece(row, col)
             piece2 = board2.get_piece(row, col)
             piece3 = board3.get_piece(row, col)
             piece4 = board4.get_piece(row, col)
 
-            assert piece1 == piece2 == piece3 == piece4
-            assert piece4['type'] == piece_type
-            assert piece4['owner'] == owner
+            # After FEN roundtrip, all pieces should be Unit objects
+            assert piece2.unit_type == piece_type
+            assert piece3.unit_type == piece_type
+            assert piece4.unit_type == piece_type
+            assert piece4.owner == owner
 
     def test_fen_phase_and_actions(self):
         """Test FEN includes phase and actions fields."""
@@ -293,10 +295,19 @@ class TestFenSerialization:
 
         # Deserialize and verify
         board2 = Fen.fen_to_board(fen)
-        assert board2.get_piece(0, 0) == {'type': 'INFANTRY', 'owner': 'NORTH'}
-        assert board2.get_piece(0, 1) == {'type': 'CAVALRY', 'owner': 'NORTH'}
-        assert board2.get_piece(19, 0) == {'type': 'INFANTRY', 'owner': 'SOUTH'}
-        assert board2.get_piece(19, 1) == {'type': 'CAVALRY', 'owner': 'SOUTH'}
+        piece_00 = board2.get_piece(0, 0)
+        piece_01 = board2.get_piece(0, 1)
+        piece_190 = board2.get_piece(19, 0)
+        piece_191 = board2.get_piece(19, 1)
+
+        assert piece_00.unit_type == 'INFANTRY'
+        assert piece_00.owner == 'NORTH'
+        assert piece_01.unit_type == 'CAVALRY'
+        assert piece_01.owner == 'NORTH'
+        assert piece_190.unit_type == 'INFANTRY'
+        assert piece_190.owner == 'SOUTH'
+        assert piece_191.unit_type == 'CAVALRY'
+        assert piece_191.owner == 'SOUTH'
 
     def test_fen_all_squares_empty(self):
         """Test FEN with all squares empty."""
@@ -328,8 +339,8 @@ class TestFenSerialization:
         # Verify roundtrip works
         board2 = Fen.fen_to_board(fen)
         retrieved = board2.get_piece(0, 0)
-        assert retrieved['type'] == 'INFANTRY'
-        assert retrieved['owner'] == 'NORTH'
+        assert retrieved.unit_type == 'INFANTRY'
+        assert retrieved.owner == 'NORTH'
 
     def test_fen_invalid_piece_without_unit_type(self):
         """Test FEN serialization with invalid piece missing unit_type."""

@@ -37,7 +37,11 @@ class Board:
         self._turn = constants.PLAYER_NORTH  # Starting player
         self._turn_number = 1  # Track turn number
         self._current_phase = constants.PHASE_MOVEMENT  # Track current phase
-        self._pending_retreats: List[Tuple[int, int]] = []  # Track pending retreats
+        # Track pending retreats (persisted in FEN)
+        self._pending_retreats: List[Tuple[int, int]] = []
+
+        # New for 0.1.5: Retreat enforcement
+        self._units_must_retreat: Set[Tuple[int, int]] = set()  # Units forced to retreat this turn
 
         # New for 0.1.4: Per-turn tracking
         self._moved_units: Set[Tuple[int, int]] = set()  # Positions units moved FROM this turn
@@ -615,6 +619,45 @@ class Board:
         """
         return (row, col) in self._pending_retreats
 
+    # Retreat enforcement methods for 0.1.5
+
+    def get_units_must_retreat(self) -> List[Tuple[int, int]]:
+        """Get all units that must retreat this turn.
+
+        Returns:
+            List of (row, col) tuples for units that must retreat
+            before making other moves
+        """
+        return list(self._units_must_retreat)
+
+    def is_unit_in_retreat(self, row: int, col: int) -> bool:
+        """Check if unit is currently in retreat mode.
+
+        Args:
+            row: Row of unit to check
+            col: Column of unit to check
+
+        Returns:
+            True if unit at (row, col) is in retreat mode, False otherwise
+        """
+        return (row, col) in self._units_must_retreat
+
+    def get_valid_retreat_positions(self, row: int, col: int) -> List[Tuple[int, int]]:
+        """Get valid retreat positions for a unit.
+
+        Args:
+            row: Row of unit to check
+            col: Column of unit to check
+
+        Returns:
+            List of (to_row, to_col) tuples representing valid retreat destinations
+
+        Note:
+            This uses the same movement rules as normal moves (terrain-independent in 0.1.4)
+        """
+        from .movement import generate_moves
+        return generate_moves(self, row, col)
+
     # Turn management methods for 0.1.4
 
     def has_moved_this_turn(self, row: int, col: int) -> bool:
@@ -670,7 +713,8 @@ class Board:
         2. The unit belongs to the current player
         3. The unit hasn't moved yet this turn
         4. The player hasn't moved 5 units yet
-        5. The move is legally valid (pseudo-legal check)
+        5. If retreats are pending, only allow retreat moves
+        6. The move is legally valid (pseudo-legal check)
 
         Args:
             from_row: Source row (0-19)
@@ -697,6 +741,11 @@ class Board:
         if unit_id in self._moved_unit_ids:
             return False
 
+        # NEW: If units must retreat, only allow those to move
+        if self._units_must_retreat:
+            if (from_row, from_col) not in self._units_must_retreat:
+                return False
+
         # Check move limit
         if len(self._moved_units) >= constants.MAX_MOVES_PER_TURN:
             return False
@@ -713,6 +762,7 @@ class Board:
         1. Validates the move according to turn rules
         2. Executes the move
         3. Tracks that the unit has moved this turn
+        4. Clears retreat flag if this was a retreat move
 
         Args:
             from_row: Source row (0-19)
@@ -743,6 +793,10 @@ class Board:
         # Track move - both position and unit ID
         self._moved_units.add((from_row, from_col))
         self._moved_unit_ids.add(unit_id)
+
+        # Clear retreat flag if this was a retreat move
+        if (from_row, from_col) in self._units_must_retreat:
+            self._units_must_retreat.remove((from_row, from_col))
 
         return moved_unit
 
@@ -856,14 +910,14 @@ class Board:
 
         This method checks for pending retreats and enforces retreat rules:
         1. For each unit that must retreat, find valid retreat squares
-        2. If valid retreat exists, mark unit as having moved (cannot attack)
+        2. If valid retreat exists, mark unit as "must retreat" (player must choose destination)
         3. If no valid retreat exists, capture (destroy) the unit
         4. Clear pending retreats after resolution
 
         Note:
             - This is called at the start of the defender's turn
-            - Retreating units cannot attack during this turn
-            - Units marked as retreated are tracked in _moved_units
+            - Retreating units must move before other units can move
+            - Units in retreat are tracked in _units_must_retreat
 
         TODO:
             - In 0.2.0, add terrain validation to retreat moves
@@ -888,9 +942,8 @@ class Board:
             valid_moves = generate_moves(self, row, col)
 
             if valid_moves:
-                # Mark unit as having moved (cannot attack this turn)
-                self._moved_units.add((row, col))
-                self._moved_unit_ids.add(id(unit))
+                # Mark unit as must retreat (player must choose destination)
+                self._units_must_retreat.add((row, col))
             else:
                 # No valid retreat: capture the unit
                 self.execute_capture(row, col)
@@ -902,19 +955,22 @@ class Board:
         ]
 
     def end_turn(self) -> None:
-        """End the current turn and switch to the next player.
+        """End current turn and switch to next player.
 
         This method:
         1. Clears moved unit tracking
         2. Clears attack counter
-        3. Switches to the other player
+        3. Switches to other player
         4. Resets phase to movement
         5. Increments turn number
-        6. Resolves any pending retreats for the new player
+        6. Resolves any pending retreats for new player
 
         Note:
-            - Retreat resolution happens at the start of the new player's turn
+            - Retreat resolution happens at start of new player's turn
             - Turn number increments on each player switch
+            - Retreat state (_units_must_retreat) is NOT cleared automatically
+            - It persists until the NEXT end_turn() call
+            - This allows retreat state to persist during player's turn
         """
         # Switch player and increment turn
         self.increment_turn()

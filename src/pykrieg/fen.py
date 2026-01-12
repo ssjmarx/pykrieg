@@ -162,11 +162,10 @@ class Fen:
                     piece_type = Fen.SYMBOL_TO_PIECE[symbol]
                     owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
 
-                    piece = {
-                        'type': piece_type,
-                        'owner': owner
-                    }
-                    board.set_piece(row, col, piece)
+                    # Create Unit object using factory function
+                    from .pieces import create_piece
+                    piece = create_piece(piece_type, owner)
+                    board.place_unit(row, col, piece)
 
         # Parse 0.1.4 turn state if present
         if len(parts) == 25:

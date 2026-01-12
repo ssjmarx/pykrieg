@@ -341,10 +341,17 @@ class TestTurnSwitching:
 
 
 class TestRetreatResolution:
-    """Test retreat resolution at turn start."""
+    """Test retreat resolution at turn start.
 
-    def test_retreat_marks_unit_as_moved(self):
-        """Test that retreat marks unit as having moved."""
+    NEW BEHAVIOR (0.1.5):
+    - resolve_retreats() marks units as "must retreat" in _units_must_retreat
+    - Player must actually move retreating unit
+    - make_turn_move() clears retreat flag and adds to _moved_units
+    - validate_move() blocks non-retreat moves when retreats pending
+    """
+
+    def test_retreat_marks_unit_as_must_retreat(self):
+        """Test that retreat marks unit as must retreat (NEW in 0.1.5)."""
         board = Board()
         board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")
 
@@ -354,8 +361,9 @@ class TestRetreatResolution:
         # Switch to SOUTH's turn
         board.end_turn()  # NORTH ends turn, SOUTH's turn begins
 
-        # SOUTH's turn should have retreat resolved
-        assert board.has_moved_this_turn(5, 12) is True
+        # NEW: Unit is marked as must retreat, not moved
+        assert board.is_unit_in_retreat(5, 12) is True
+        assert board.has_moved_this_turn(5, 12) is False
 
     def test_retreat_captured_if_no_valid_move(self):
         """Test that unit is captured if no valid retreat."""
@@ -375,7 +383,7 @@ class TestRetreatResolution:
         assert board.get_unit(0, 0) is None
 
     def test_multiple_retreats_resolved(self):
-        """Test multiple retreats are resolved correctly."""
+        """Test multiple retreats are resolved correctly (NEW behavior in 0.1.5)."""
         board = Board()
         board.create_and_place_unit(5, 10, "INFANTRY", "SOUTH")
         board.create_and_place_unit(5, 12, "CAVALRY", "SOUTH")
@@ -386,9 +394,11 @@ class TestRetreatResolution:
         # Switch to SOUTH's turn
         board.end_turn()
 
-        # Both units marked as moved
-        assert board.has_moved_this_turn(5, 10) is True
-        assert board.has_moved_this_turn(5, 12) is True
+        # NEW: Both units marked as must retreat (NOT moved)
+        assert board.is_unit_in_retreat(5, 10) is True
+        assert board.is_unit_in_retreat(5, 12) is True
+        assert board.has_moved_this_turn(5, 10) is False
+        assert board.has_moved_this_turn(5, 12) is False
 
     def test_retreat_cleared_after_resolution(self):
         """Test that pending retreats are cleared after resolution."""
@@ -402,6 +412,46 @@ class TestRetreatResolution:
         board.end_turn()
 
         assert len(board.get_pending_retreats()) == 0
+
+    def test_retreat_move_clears_retreat_flag(self):
+        """Test that moving retreating unit clears retreat flag (NEW in 0.1.5)."""
+        board = Board()
+        board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")
+
+        # Add pending retreat
+        board.add_pending_retreat(5, 12)
+        assert len(board.get_pending_retreats()) == 1
+
+        # Switch to SOUTH's turn - retreat should be resolved
+        board.end_turn()
+
+        # Unit should be marked as must retreat
+        assert board.is_unit_in_retreat(5, 12) is True
+
+        # Move the unit to retreat
+        board.make_turn_move(5, 12, 6, 12)
+
+        # Retreat flag should be cleared after move
+        assert board.is_unit_in_retreat(5, 12) is False
+        # But unit should be marked as moved
+        assert board.has_moved_this_turn(5, 12) is True
+
+    def test_non_retreat_move_blocked_when_retreats_pending(self):
+        """Test non-retreat moves are blocked when retreats pending (NEW in 0.1.5)."""
+        board = Board()
+        board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")  # Must retreat
+        board.create_and_place_unit(5, 13, "CAVALRY", "SOUTH")  # Normal unit
+
+        board.add_pending_retreat(5, 12)
+        board.end_turn()  # SOUTH's turn, retreat resolved
+
+        assert board.is_unit_in_retreat(5, 12) is True
+
+        # Try to move non-retreating unit - should fail
+        assert board.validate_move(5, 13, 6, 13) is False
+
+        # Moving retreating unit should still work
+        assert board.validate_move(5, 12, 6, 12) is True
 
 
 class TestFullTurnSequence:
