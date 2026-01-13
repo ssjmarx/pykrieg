@@ -8,7 +8,7 @@ __version__ = "0.2.0"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 
-from . import board, combat, console, constants, fen, movement, types
+from . import board, combat, constants, fen, movement, types
 from .board import Board
 from .combat import (
     CombatOutcome,
@@ -58,7 +58,6 @@ __all__ = [
     'types',
     'movement',
     'turn',
-    'console',
     'Board',
     'Fen',
     'Unit',
@@ -91,8 +90,4 @@ __all__ = [
     'validate_turn_action',
     'can_end_turn',
     'get_turn_summary',
-    'console',
-    'BoardDisplay',
-    'DisplayMode',
-    'ConsoleGame',
 ]
