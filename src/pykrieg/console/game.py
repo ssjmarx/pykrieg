@@ -102,7 +102,7 @@ class ConsoleGame:
             "",
             "╔════════════════════════════════════════════════════════╗",
             "║                                                        ║",
-            "║          PYKRIEG - Console Interface v0.1.5            ║",
+            "║          PYKRIEG - Console Interface v0.2.0            ║",
             "║    Guy Debord's Le Jeu de la Guerre                    ║",
             "║                                                        ║",
             "╚════════════════════════════════════════════════════════╝",
@@ -652,6 +652,48 @@ class ConsoleGame:
         to_row: int = command.args.get('to_row')  # type: ignore[assignment]
         to_col: int = command.args.get('to_col')  # type: ignore[assignment]
 
+        # Check if unit is offline before attempting move
+        try:
+            unit = self.board.get_unit(from_row, from_col)
+        except ValueError:
+            message = f"Error: Invalid coordinates ({from_row}, {from_col})"
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+            return
+        if unit and hasattr(unit, 'owner'):
+            is_online = self.board.is_unit_online(from_row, from_col, unit.owner)
+            unit_type = getattr(unit, 'unit_type', '?')
+
+            # Relays and Swift Relays can move even when offline
+            is_relay = unit_type in ('RELAY', 'SWIFT_RELAY')
+
+            if not is_online and not is_relay:
+                # Unit is offline and cannot move
+                coord = self.board.tuple_to_spreadsheet(from_row, from_col)
+
+                if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                    message = (
+                        f"Cannot move: {unit_type} at {coord} is offline.\n"
+                        f"Units require network connection to move.\n"
+                        f"Relays can move even when offline."
+                    )
+                    self.curses_input.show_message(message)
+                else:
+                    message = (
+                        f"Cannot move: {unit_type} at {coord} is OFFLINE.\n"
+                        f"Units require network connection to move.\n"
+                        f"Check relay placement and line-of-sight from arsenals.\n"
+                        f"Relays can move even when offline."
+                    )
+                    print(message)
+                    input("Press Enter to continue...")
+                    self._render()
+                return
+
         # Execute move
         try:
             unit = self.board.make_turn_move(from_row, from_col, to_row, to_col)
@@ -659,7 +701,13 @@ class ConsoleGame:
                 raise ValueError("Invalid unit returned from move")
             from .parser import format_move
             move_str = format_move(from_row, from_col, to_row, to_col)
-            message = f"Moved {unit.unit_type} from {move_str}"
+            unit_type = getattr(unit, 'unit_type', 'Unknown')
+            message = f"Moved {unit_type} from {move_str}"
+
+            # After successful move, recalculate networks for both players
+            # Moving units can change line-of-sight for both players
+            self.board.calculate_network('NORTH')
+            self.board.calculate_network('SOUTH')
 
             # Check if all moves used - auto-advance to battle phase
             if self.board.get_moves_this_turn() >= 5:
@@ -696,9 +744,25 @@ class ConsoleGame:
         target_row: int = command.args.get('target_row')  # type: ignore[assignment]
         target_col: int = command.args.get('target_col')  # type: ignore[assignment]
 
+        # Validate coordinates first
+        if not self.board.is_valid_square(target_row, target_col):
+            message = f"Error: Invalid coordinates ({target_row}, {target_col})"
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+            return
+
         # Execute attack
         try:
             result = self.board.make_turn_attack(target_row, target_col)
+
+            # After attack, recalculate networks for both players
+            # Capture/retreat removes units, potentially breaking network chains
+            self.board.calculate_network('NORTH')
+            self.board.calculate_network('SOUTH')
 
             target = self.board.get_unit(target_row, target_col)
             if target and hasattr(target, 'unit_type'):
@@ -862,6 +926,10 @@ class ConsoleGame:
                 fen = f.read()
 
             self.board = Fen.fen_to_board(fen)
+
+            # After loading, enable networks
+            self.board.enable_networks()
+
             # Update curses input board reference
             if self.curses_input:
                 self.curses_input.update_board(self.board)
@@ -993,7 +1061,12 @@ class ConsoleGame:
                 fen_string = f.read().strip()
 
             # Load board from FEN string
-            return Fen.fen_to_board(fen_string)
+            board = Fen.fen_to_board(fen_string)
+
+            # After loading, enable networks
+            board.enable_networks()
+
+            return board
         except FileNotFoundError:
             print("Warning: Default starting position file not found.")
             print("Starting with empty board.")

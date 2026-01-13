@@ -126,6 +126,9 @@ class Fen:
         if not isinstance(fen_string, str):
             raise TypeError(f"FEN must be string, got {type(fen_string)}")
 
+        # Remove newlines to handle user formatting
+        fen_string = fen_string.replace('\n', '')
+
         parts = fen_string.split('/')
         if len(parts) not in [23, 25]:  # 0.1.0 format (23) or 0.1.4 format (25)
             raise ValueError(f"Invalid FEN: expected 23 or 25 parts, got {len(parts)}")
@@ -199,5 +202,8 @@ class Fen:
                             board.add_pending_retreat(row, col)
                         except (ValueError, IndexError) as err:
                             raise ValueError(f"Invalid retreat position: {retreats_str}") from err
+
+        # Network recalculation is now lazy - networks will be calculated on-demand
+        # when needed via _ensure_network_calculated()
 
         return board

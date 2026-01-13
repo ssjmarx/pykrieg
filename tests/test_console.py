@@ -99,13 +99,13 @@ class TestBoardDisplay:
         board = Board()
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
         board.create_and_place_unit(5, 11, "CAVALRY", "SOUTH")
-        
+
         display = BoardDisplay(DisplayMode.CURSES)
-        
+
         unit_1 = board.get_unit(5, 10)
         char_1 = display._get_unit_char(unit_1)
         assert '♟' in char_1 or char_1 == '♟'  # Unicode for infantry
-        
+
         unit_2 = board.get_unit(5, 11)
         char_2 = display._get_unit_char(unit_2)
         assert '♞' in char_2 or char_2 == '♞'  # Unicode for cavalry
@@ -295,7 +295,13 @@ class TestCommandValidation:
     def test_validate_valid_move(self):
         """Test validating a valid move."""
         board = Board()
+        # Add an arsenal so units are online (required for movement in 0.2.0)
+        board.create_and_place_unit(0, 10, "ARSENAL", "NORTH")
+        # Place infantry at (5, 10) which is in the arsenal's ray (same column)
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+
+        # Calculate networks so that infantry is online
+        board.calculate_network('NORTH')
 
         command = Command(CommandType.MOVE, {
             'from_row': 5,
@@ -563,14 +569,20 @@ class TestConsoleGameIntegration:
 
     def test_execute_move_command(self):
         """Test executing move command (spreadsheet format)."""
-        # Use a fresh board instead of the game's default starting position
-        # which may have units that interfere with the test
+        # Use a fresh board instead of game's default starting position
+        # which may have units that interfere with test
         game = ConsoleGame(display_mode='compatibility')
         game.board = Board()  # Clear board
-        game.board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+        # Add an arsenal so units are online (required for movement in 0.2.0)
+        game.board.create_and_place_unit(0, 12, "ARSENAL", "NORTH")
+        # Place infantry at (5, 12) which IS in the arsenal's ray (same column)
+        game.board.create_and_place_unit(5, 12, "INFANTRY", "NORTH")
 
-        # Use spreadsheet format (e.g., "K6 K7")
-        command = parse_command("K6 K7")
+        # Calculate networks so that infantry is online
+        game.board.calculate_network('NORTH')
+
+        # Use spreadsheet format (e.g., "M6 M7" - column M = 12)
+        command = parse_command("M6 M7")
         is_valid, error = validate_command(game.board, command)
 
         assert is_valid is True
@@ -579,8 +591,8 @@ class TestConsoleGameIntegration:
             game._execute_move(command)
 
         # Unit should have moved
-        assert game.board.get_unit(5, 10) is None
-        assert game.board.get_unit(6, 10) is not None
+        assert game.board.get_unit(5, 12) is None
+        assert game.board.get_unit(6, 12) is not None
 
     def test_execute_attack_command(self):
         """Test executing attack command."""
@@ -720,7 +732,7 @@ class TestConsoleGameIntegration:
     def test_game_renders_without_crash(self):
         """Test game renders without crashing."""
         game = ConsoleGame(display_mode='compatibility')
-        
+
         # Should not crash when rendering
         game._render()
 

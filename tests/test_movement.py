@@ -238,8 +238,11 @@ class TestMoveExecution:
     def test_execute_move_sequence(self):
         """Test executing multiple moves in sequence."""
         board = Board()
+        # Add arsenal so units are online (0.2.0 network system)
+        board.create_and_place_unit(9, 12, "ARSENAL", "NORTH")
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
-        board.create_and_place_unit(11, 15, "CAVALRY", "NORTH")
+        # Place cavalry close enough to be connected via infantry's network coverage
+        board.create_and_place_unit(11, 13, "CAVALRY", "NORTH")
 
         # First move
         execute_move(board, 10, 12, 10, 13)
@@ -247,9 +250,9 @@ class TestMoveExecution:
         assert board.get_unit(10, 12) is None
 
         # Second move
-        execute_move(board, 11, 15, 12, 16)
-        assert board.get_unit(12, 16) is not None
-        assert board.get_unit(11, 15) is None
+        execute_move(board, 11, 13, 12, 14)
+        assert board.get_unit(12, 14) is not None
+        assert board.get_unit(11, 13) is None
 
 
 class TestUnitMovementRange:
@@ -438,9 +441,14 @@ class TestMovementIntegration:
     def test_movement_sequence(self):
         """Test sequence of moves on same unit."""
         board = Board()
+        # Add arsenal and multiple relays to ensure continuous network coverage (0.2.0 network system)
+        # Relays create a network path for cavalry to move through
+        board.create_and_place_unit(9, 12, "ARSENAL", "NORTH")
+        board.create_and_place_unit(10, 13, "RELAY", "NORTH")
+        board.create_and_place_unit(11, 14, "RELAY", "NORTH")
         board.create_and_place_unit(10, 12, "CAVALRY", "NORTH")
 
-        # Move step by step
+        # Move step by step - cavalry stays connected via relay network
         execute_move(board, 10, 12, 11, 13)
         assert board.get_unit(11, 13) is not None
 

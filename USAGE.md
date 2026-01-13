@@ -432,9 +432,189 @@ See [KFEN-SPECIFICATION.md](KFEN-SPECIFICATION.md) for complete format details.
 
 ---
 
+## Lines of Communication (LOC) Network
+
+The Lines of Communication system (v0.2.0) implements network connectivity rules where units must be connected to Arsenals through lines of sight to function properly.
+
+### Network States
+
+The network system has two states:
+
+1. **Disabled (Default)**: All units are considered "online" and can move, attack, and defend normally. This is the pre-0.2.0 behavior and provides backward compatibility.
+
+2. **Enabled**: Units must be within network coverage to function. Arsenals emit signals along 8 directional rays; Relays and Swift Relays can extend these signals. Units not connected have zero attack/defense/range (except Relays which can still move and defend).
+
+### Enabling Networks
+
+Network rules are **not enabled by default**. To activate them, explicitly call `enable_networks()` after setting up your board:
+
+```python
+from pykrieg import Board
+
+board = Board()
+
+# Setup board with arsenals and units
+board.create_and_place_unit(5, 10, 'ARSENAL', 'NORTH')
+board.create_and_place_unit(5, 12, 'RELAY', 'NORTH')
+board.create_and_place_unit(5, 14, 'INFANTRY', 'NORTH')
+
+# ENABLE network rules for both players
+board.enable_networks()
+
+# Now network rules apply:
+# - Check if a unit is online
+if board.is_unit_online(5, 14, 'NORTH'):
+    print("Infantry is online and can act")
+else:
+    print("Infantry is offline (zero attack/defense/range)")
+
+# - Get all online units
+online_units = board.get_online_units('NORTH')
+print(f"Online units: {len(online_units)}")
+
+# - Get all offline units
+offline_units = board.get_offline_units('NORTH')
+print(f"Offline units: {len(offline_units)}")
+```
+
+### Network Coverage Calculation
+
+The network system uses a two-step propagation algorithm:
+
+**Step 1**: Arsenals activate all units along 8 directional rays (horizontal, vertical, diagonal).
+
+**Step 2**: Relays and Swift Relays propagate the signal. If a Relay or Swift Relay is activated, it also activates units along its own 8 rays. This process repeats until no new Relays are activated.
+
+Example:
+```python
+from pykrieg import Board
+
+board = Board()
+
+# Arsenal at (5, 0) - emits signal in all directions
+board.create_and_place_unit(5, 0, 'ARSENAL', 'NORTH')
+
+# Relay at (5, 5) - receives signal from Arsenal
+board.create_and_place_unit(5, 5, 'RELAY', 'NORTH')
+
+# Infantry at (5, 10) - receives signal from Relay
+board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
+
+# Second Relay at (5, 8) - receives signal from first Relay
+board.create_and_place_unit(5, 8, 'RELAY', 'NORTH')
+
+# Enable networks
+board.enable_networks()
+
+# Check connectivity
+print(board.is_unit_online(5, 0, 'NORTH'))  # True (Arsenal)
+print(board.is_unit_online(5, 5, 'NORTH'))  # True (connected to Arsenal)
+print(board.is_unit_online(5, 8, 'NORTH'))  # True (connected to Relay at 5,5)
+print(board.is_unit_online(5, 10, 'NORTH'))  # True (connected to Relay at 5,8)
+```
+
+### Effective Stats
+
+When networks are enabled, units have "effective" stats that depend on their online status:
+
+- **Attack/Defense/Range**: Zero for offline units (except Relays which always have defense)
+- **Movement**: Zero for offline units (except Relays and Swift Relays which can move even when offline)
+
+```python
+from pykrieg import Board
+
+board = Board()
+
+# Enable networks (no arsenals = all units offline)
+board.enable_networks()
+board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
+
+unit = board.get_unit(5, 10)
+
+# Effective stats (offline = zero)
+print(unit.get_effective_attack(board))    # 0 (no network connection)
+print(unit.get_effective_defense(board))   # 0 (no network connection)
+print(unit.get_effective_movement(board))  # 0 (no network connection)
+
+# Relays can still move and defend when offline
+board.create_and_place_unit(5, 11, 'RELAY', 'NORTH')
+relay = board.get_unit(5, 11)
+print(relay.get_effective_defense(board))   # 1 (Relays always have defense)
+print(relay.get_effective_movement(board))  # 1 (Relays can move offline)
+```
+
+### Backward Compatibility
+
+If you don't call `calculate_network()`, the system uses the optimistic default (all units online):
+
+```python
+from pykrieg import Board
+
+board = Board()
+
+# No calculate_network() call = networks disabled
+board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
+
+# All units considered online
+print(board.is_unit_online(5, 10, 'NORTH'))  # True
+
+# All units have full stats
+unit = board.get_unit(5, 10)
+print(unit.get_effective_attack(board))    # 4 (full attack)
+print(unit.get_effective_defense(board))   # 6 (full defense)
+print(unit.get_effective_movement(board))  # 1 (full movement)
+```
+
+### Loading Games with Networks
+
+When loading a saved game, you must re-enable networks:
+
+```python
+from pykrieg import Board, Fen
+
+# Load from FEN
+with open('save_game.fen', 'r') as f:
+    fen = f.read()
+board = Fen.fen_to_board(fen)
+
+# Re-enable networks if game uses them
+board.enable_networks()
+```
+
+### Network Queries
+
+```python
+from pykrieg import Board
+
+board = Board()
+# ... setup and enable networks ...
+
+# Check if a square is covered by network
+if board.is_unit_online(row, col, 'NORTH'):
+    print(f"Unit at ({row}, {col}) is online")
+
+# Check if a relay is online (can propagate)
+if board.is_relay_online(row, col, 'NORTH'):
+    print(f"Relay at ({row}, {col}) is online and active")
+
+# Get all online units for a player
+online_units = board.get_online_units('NORTH')
+print(f"North has {len(online_units)} online units")
+
+# Get all offline units for a player
+offline_units = board.get_offline_units('NORTH')
+print(f"North has {len(offline_units)} offline units")
+
+# Get active relays (can propagate signal)
+active_relays = board.get_network_active_relays('NORTH')
+print(f"North has {len(active_relays)} active relays")
+```
+
+---
+
 ## Console Interface
 
-Pykrieg includes a full-featured console interface for playing games interactively (v0.1.5).
+Pykrieg includes a full-featured console interface for playing games interactively (v0.2.0).
 
 ### Launching the Console
 

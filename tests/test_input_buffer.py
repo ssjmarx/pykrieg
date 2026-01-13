@@ -5,7 +5,6 @@ Tests command parsing, buffer management, and display.
 
 from pykrieg.console.input_buffer import CommandBuffer
 
-
 # ============================================================================
 # Input Buffer Edge Cases
 # ============================================================================

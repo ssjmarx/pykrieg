@@ -99,8 +99,8 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
                       attacker: str) -> int:
     """Calculate total attack power against a target square.
 
-    Attack power is the sum of Attack stats of all attacker's units
-    in direct lines with the target, plus Cavalry charge bonuses.
+    Attack power is sum of effective Attack stats of all attacker's units
+    in direct lines with target, plus Cavalry charge bonuses.
 
     Cavalry Charge Rules:
     - Cavalry adjacent to target gets +3 bonus (triggers charge)
@@ -109,7 +109,11 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
     - Stacking cavalry also get +3 bonus even if not adjacent
     - Each attack vector calculated separately
     - If first cavalry not adjacent, no charge in that direction
-    - Gaps break the charge stacking chain
+    - Gaps break charge stacking chain
+
+    Note: Effective attack considers online/offline status (0.2.0)
+    - Offline units have 0 attack (except relays, which have 0 anyway)
+    - Only online units contribute to attack power
 
     Args:
         board: The game board
@@ -128,7 +132,7 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
         # Check if charge is active for this direction
         charging = False
 
-        # Build the full list of squares in this direction
+        # Build full list of squares in this direction
         # to check for gaps between units
         row_offset, col_offset = direction
         squares_in_line = []
@@ -140,7 +144,12 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
             current_col += col_offset
 
         for i, (row, col, unit) in enumerate(units):
-            base_attack = getattr(unit, 'attack', 0)
+            # Use effective attack (0.2.0) to account for online/offline status
+            if hasattr(unit, 'get_effective_attack'):
+                base_attack = unit.get_effective_attack(board)
+            else:
+                base_attack = getattr(unit, 'attack', 0)
+
             unit_type = getattr(unit, 'unit_type', None)
 
             # Check for Cavalry charge bonus
@@ -189,8 +198,12 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
                         defender: str) -> int:
     """Calculate total defense power for a target square.
 
-    Defense power is the sum of Defense stats of all defender's units
+    Defense power is sum of effective Defense stats of all defender's units
     in direct lines supporting the target, including the unit at the target itself.
+
+    Note: Effective defense considers online/offline status (0.2.0)
+    - Offline units have 0 defense (except relays, which always have defense)
+    - Only online units contribute to defense power
 
     Args:
         board: The game board
@@ -206,15 +219,22 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
     # First, check if there's a unit at the target square that belongs to defender
     target_unit = board.get_unit(target_row, target_col)
     if target_unit is not None and getattr(target_unit, 'owner', None) == defender:
-        total_defense += getattr(target_unit, 'defense', 0)
+        # Use effective defense (0.2.0) to account for online/offline status
+        if hasattr(target_unit, 'get_effective_defense'):
+            total_defense += target_unit.get_effective_defense(board)
+        else:
+            total_defense += getattr(target_unit, 'defense', 0)
 
     # Then add defense from units in all 8 directions supporting the target
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, defender)
 
         for _row, _col, unit in units:
-            defense = getattr(unit, 'defense', 0)
-            total_defense += defense
+            # Use effective defense (0.2.0) to account for online/offline status
+            if hasattr(unit, 'get_effective_defense'):
+                total_defense += unit.get_effective_defense(board)
+            else:
+                total_defense += getattr(unit, 'defense', 0)
 
     return total_defense
 
@@ -313,7 +333,8 @@ def calculate_combat(board: Board, target_row: int, target_col: int,
 def execute_capture(board: Board, target_row: int, target_col: int) -> object:
     """Execute a capture (remove target unit from board).
 
-    This function removes the unit at the target square.
+    This function removes the unit at target square.
+    After capture, networks are recalculated for both players (0.2.0).
 
     Args:
         board: The game board
@@ -334,6 +355,11 @@ def execute_capture(board: Board, target_row: int, target_col: int) -> object:
         raise ValueError(f"No unit to capture at ({target_row}, {target_col})")
 
     board.clear_square(target_row, target_col)
+
+    # Network recalculation is now lazy - marked dirty by clear_square()
+    # Will be recalculated automatically when needed via _ensure_network_calculated()
+    # This ensures backward compatibility for scenarios that don't use network system
+
     return unit
 
 

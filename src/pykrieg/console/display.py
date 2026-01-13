@@ -160,7 +160,7 @@ class BoardDisplay:
 
             if highlight:
                 # Render with background color
-                self._render_curses_cell_highlight(stdscr, x_pos, y_pos, unit, highlight)
+                self._render_curses_cell_highlight(stdscr, x_pos, y_pos, unit, highlight, board)
             elif unit is None:
                 # Empty cell (terrain)
                 stdscr.addstr(y_pos, x_pos, "_", curses.color_pair(self.COLOR_GRAY))
@@ -168,8 +168,15 @@ class BoardDisplay:
                 # Unit with player color
                 owner = getattr(unit, 'owner', None)
                 color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
-                # Use get_unit_char which handles multi-word unit types
-                char = self._get_unit_char(unit)
+
+                # Check if unit is online (for curses mode)
+                if owner is None:
+                    is_online = True  # Fallback if no owner
+                else:
+                    is_online = board.is_unit_online(row, col, owner)
+
+                # Get appropriate glyph based on online status
+                char = self._get_unit_glyph(unit, is_online)
                 stdscr.addstr(y_pos, x_pos, char, curses.color_pair(color))
 
             # Space after cell - check if this is a swift unit and add star
@@ -195,6 +202,7 @@ class BoardDisplay:
         y: int,
         unit: Optional[object],
         highlight_type: str,
+        board: Optional[Board] = None,
     ) -> None:
         """Render cell with highlight background.
 
@@ -218,8 +226,26 @@ class BoardDisplay:
         # Get cell content
         if unit is None:
             text = "_"
+        elif board:
+            # Check if unit is online (for curses mode) using board's method
+            owner = getattr(unit, 'owner', None)
+            # Find unit position from board state
+            is_online = True
+            if owner is None:
+                # No owner - assume online
+                pass
+            else:
+                for row in range(board.rows):
+                    for col in range(board.cols):
+                        if board.get_unit(row, col) == unit:
+                            is_online = board.is_unit_online(row, col, owner)
+                            break
+                    if not is_online:  # Found unit and it's offline
+                        break
+            text = self._get_unit_glyph(unit, is_online)
         else:
-            text = self._get_unit_char(unit)
+            # Fallback if no board provided
+            text = self._get_unit_glyph(unit, online=True)
 
         # Render with background color
         stdscr.addstr(y, x, text, curses.color_pair(bg_pair))
@@ -261,31 +287,54 @@ class BoardDisplay:
 
         return " ".join(headers)
 
-    def _get_unit_char(self, unit: object) -> str:
-        """Get character for unit (unicode in curses mode, ASCII in compat mode).
+    def _get_unit_glyph(self, unit: object, online: bool = True) -> str:
+        """Get the visual glyph for a unit based on type and online status.
+
+        NOTE: Stars for Swift units are added separately in rendering logic,
+        not in this glyph method. This method only returns the base glyph.
 
         Args:
-            unit: The unit to get character for
+            unit: The unit to get glyph for
+            online: Whether the unit is online (default True)
 
         Returns:
-            Character representing the unit (uppercase/unicode for North, lowercase for South)
+            Character representing the unit (solid/hollow based on online status)
         """
         unit_type = getattr(unit, 'unit_type', '?').upper()
 
-        # Unicode characters for curses mode (all online for now)
+        # Unicode characters for curses mode
         if self.mode == DisplayMode.CURSES:
-            # Online (solid) unicode characters
-            chars_north = {
-                "INFANTRY": "♟",        # Pawn
-                "CAVALRY": "♞",         # Knight
-                "CANNON": "♜",          # Rook
-                "SWIFT_CANNON": "♜",    # Same as cannon (star added separately)
-                "RELAY": "♝",           # Bishop (always solid)
-                "SWIFT_RELAY": "♝",      # Same as relay (star added separately)
-                "ARSENAL": "☗",          # Shogi piece (always solid)
-            }
+            # Network units (Arsenal, Relay, Swift Relay) - ALWAYS solid
+            if unit_type == 'ARSENAL':
+                return '☗'
+            elif unit_type == 'RELAY':
+                return '♝'
+            elif unit_type == 'SWIFT_RELAY':
+                return '♝'  # Star added separately
+
+            # Combat units - Solid when online, Hollow when offline
+            if online:
+                # Online (solid) unicode characters
+                chars_online = {
+                    "INFANTRY": "♟",        # Pawn
+                    "CAVALRY": "♞",         # Knight
+                    "CANNON": "♜",          # Rook
+                    "SWIFT_CANNON": "♜",    # Same as cannon (star added separately)
+                }
+                return chars_online.get(unit_type, "?")
+            else:
+                # Offline (hollow) unicode characters
+                chars_offline = {
+                    "INFANTRY": "♙",        # Hollow Pawn
+                    "CAVALRY": "♘",         # Hollow Knight
+                    "CANNON": "♖",          # Hollow Rook
+                    "SWIFT_CANNON": "♖",    # Same as cannon (star added separately)
+                }
+                return chars_offline.get(unit_type, "?")
+
         else:
             # ASCII characters for compatibility mode
+            # Online/Offline status is NOT displayed in compatibility mode
             chars_north = {
                 "INFANTRY": "I",
                 "CAVALRY": "C",
@@ -296,14 +345,29 @@ class BoardDisplay:
                 "ARSENAL": "A",
             }
 
-        char = chars_north.get(unit_type, "?")
+            char = chars_north.get(unit_type, "?")
 
-        # Lowercase for South player (ASCII mode only)
-        owner = getattr(unit, 'owner', None)
-        if self.mode == DisplayMode.COMPATIBILITY and owner == "SOUTH":
-            char = char.lower()
+            # Lowercase for South player
+            owner = getattr(unit, 'owner', None)
+            if owner == "SOUTH":
+                char = char.lower()
 
-        return char
+            return char
+
+    def _get_unit_char(self, unit: object) -> str:
+        """Get character for unit (unicode in curses mode, ASCII in compat mode).
+
+        Args:
+            unit: The unit to get character for
+
+        Returns:
+            Character representing the unit (uppercase/unicode for North, lowercase for South)
+
+        DEPRECATED: This method is kept for backward compatibility.
+        New code should use _get_unit_glyph() with online status.
+        """
+        # Default to online for backward compatibility
+        return self._get_unit_glyph(unit, online=True)
 
     def _render_compatibility(self, board: Board) -> str:
         """Render board in compatibility mode (ASCII).

@@ -65,3 +65,27 @@ PHASE_BATTLE = 'B'
 # Maximum moves per turn
 MAX_MOVES_PER_TURN = 5
 MAX_ATTACKS_PER_TURN = 1
+
+# Terrain types (for 0.2.0 network system)
+TERRAIN_NONE = None
+TERRAIN_MOUNTAIN = 'MOUNTAIN'
+TERRAIN_MOUNTAIN_PASS = 'MOUNTAIN_PASS'
+TERRAIN_FORTRESS = 'FORTRESS'
+
+ALL_TERRAIN_TYPES = [
+    TERRAIN_MOUNTAIN,
+    TERRAIN_MOUNTAIN_PASS,
+    TERRAIN_FORTRESS,
+]
+
+# Direction vectors for ray-casting (8 directions)
+DIRECTIONS = [
+    (0, -1),   # North
+    (1, -1),   # Northeast
+    (1, 0),    # East
+    (1, 1),    # Southeast
+    (0, 1),    # South
+    (-1, 1),   # Southwest
+    (-1, 0),   # West
+    (-1, -1),  # Northwest
+]

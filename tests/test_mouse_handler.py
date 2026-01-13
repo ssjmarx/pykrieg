@@ -3,10 +3,8 @@
 Tests mouse click handling, selection state, and status display.
 """
 
-from unittest.mock import patch, MagicMock
 from pykrieg import Board
 from pykrieg.console.mouse_handler import MouseHandler
-
 
 # ============================================================================
 # Mouse Handler Initialization Tests
@@ -301,7 +299,7 @@ class TestMouseHandlerStatus:
 
         # Should show either ACTIVE or DISABLED depending on mouse support
         assert "ACTIVE" in status or "DISABLED" in status
-        
+
         # Only check for selection info if mouse is active
         if "ACTIVE" in status:
             assert "Selected:" in status

@@ -4,7 +4,7 @@ Pykrieg - A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre.
 This package is currently in early development. Check back soon for updates!
 """
 
-__version__ = "0.1.5"
+__version__ = "0.2.0"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 

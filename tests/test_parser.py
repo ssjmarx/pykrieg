@@ -12,7 +12,6 @@ from pykrieg.console.parser import (
     validate_command,
 )
 
-
 # ============================================================================
 # Parser Edge Cases
 # ============================================================================
@@ -256,7 +255,7 @@ class TestValidationEdgeCases:
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
         board.create_and_place_unit(6, 10, "CAVALRY", "SOUTH")
         board.switch_to_battle_phase()
-        
+
         # Simulate attack by setting attacks made
         board._attacks_this_turn = 1
 

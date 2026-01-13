@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pykrieg"
-version = "0.1.5"
+version = "0.2.0"
 description = "A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -46,6 +46,10 @@ console = [
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+packages = ["pykrieg"]
+
+[tool.setuptools.package-data]
+pykrieg = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -97,6 +101,7 @@ warn_no_return = true
 strict_equality = true
 exclude = [
     "venv",
+    "venv/",
 ]
 
 [tool.black]

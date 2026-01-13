@@ -20,11 +20,10 @@ class TestFenSerialization:
         parts = fen.split('/')
         assert len(parts) == 25  # 20 rows + 5 metadata (turn, phase, actions, turn_number, retreats)
 
-        # Check board data is all underscores
+        # Check board data is all underscores (strip newlines added for user-friendly formatting)
         board_data = parts[:20]
         for row in board_data:
-            assert row == '_' * 25
-            assert len(row) == 25
+            assert row.strip() == '_' * 25
 
     def test_empty_board_fen_roundtrip(self):
         """Test empty board FEN roundtrip."""

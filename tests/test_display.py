@@ -6,7 +6,6 @@ Tests screen-to-board coordinate conversion, highlights, and rendering.
 from pykrieg import Board
 from pykrieg.console.display import BoardDisplay, DisplayMode
 
-
 # ============================================================================
 # Display Coordinate Mapping Tests
 # ============================================================================

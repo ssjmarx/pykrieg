@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Optional
 from . import constants
 
 if TYPE_CHECKING:
-    pass
+    from .board import Board
 
 
 class Unit:
@@ -98,6 +98,147 @@ class Unit:
     def __hash__(self) -> int:
         """Return hash based on unit type and owner."""
         return hash((self.unit_type, self.owner))
+
+    # =====================================================================
+    # 0.2.0: Effective Stats Methods (Lines of Communication)
+    # =====================================================================
+
+    def get_effective_attack(self, board: "Board") -> int:
+        """Get effective attack value, considering online/offline status.
+
+        Args:
+            board: The Board object to check online status
+
+        Returns:
+            Effective attack value (0 if offline and not a relay)
+        """
+        # Import here to avoid circular import
+        from .constants import UNIT_RELAY, UNIT_SWIFT_RELAY
+
+        # Relays/swift relays can have non-zero attack even when offline
+        # (but actually they have 0 attack always)
+        if self.unit_type in (UNIT_RELAY, UNIT_SWIFT_RELAY):
+            return self.attack
+
+        # Check if network has been calculated
+        # If network was never calculated, assume all units are online (use base stats)
+        if hasattr(board, '_network_calculated') and board._network_calculated:
+            # Other units need to be online to have attack
+            # Check if unit is active in the network
+            if hasattr(board, '_is_unit_active'):
+                # Find unit's position on board
+                for row in range(board.rows):
+                    for col in range(board.cols):
+                        unit = board.get_unit(row, col)
+                        if unit is self:
+                            if board._is_unit_active(row, col, self.owner):
+                                return self.attack
+                            return 0
+
+        # Fallback: return base attack if network not calculated
+        return self.attack
+
+    def get_effective_defense(self, board: "Board") -> int:
+        """Get effective defense value, considering online/offline status.
+
+        Args:
+            board: The Board object to check online status
+
+        Returns:
+            Effective defense value (0 if offline and not a relay)
+        """
+        # Import here to avoid circular import
+        from .constants import UNIT_RELAY, UNIT_SWIFT_RELAY
+
+        # Relays/swift relays always have their defense value
+        if self.unit_type in (UNIT_RELAY, UNIT_SWIFT_RELAY):
+            return self.defense
+
+        # Check if network has been calculated
+        # If network was never calculated, assume all units are online (use base stats)
+        if hasattr(board, '_network_calculated') and board._network_calculated:
+            # Other units need to be online to have defense
+            # Check if unit is active in the network
+            if hasattr(board, '_is_unit_active'):
+                # Find unit's position on board
+                for row in range(board.rows):
+                    for col in range(board.cols):
+                        unit = board.get_unit(row, col)
+                        if unit is self:
+                            if board._is_unit_active(row, col, self.owner):
+                                return self.defense
+                            return 0
+
+        # Fallback: return base defense if network not calculated
+        return self.defense
+
+    def get_effective_range(self, board: "Board") -> Optional[int]:
+        """Get effective range value, considering online/offline status.
+
+        Args:
+            board: The Board object to check online status
+
+        Returns:
+            Effective range value (0 if offline and not a relay, None for structures)
+        """
+        # Import here to avoid circular import
+        from .constants import UNIT_RELAY, UNIT_SWIFT_RELAY
+
+        # Relays/swift relays have 0 range always
+        if self.unit_type in (UNIT_RELAY, UNIT_SWIFT_RELAY):
+            return self.range
+
+        # Check if network has been calculated
+        # If network was never calculated, assume all units are online (use base stats)
+        if hasattr(board, '_network_calculated') and board._network_calculated:
+            # Other units need to be online to have range
+            # Check if unit is active in the network
+            if hasattr(board, '_is_unit_active'):
+                # Find unit's position on board
+                for row in range(board.rows):
+                    for col in range(board.cols):
+                        unit = board.get_unit(row, col)
+                        if unit is self:
+                            if board._is_unit_active(row, col, self.owner):
+                                return self.range
+                            return 0
+
+        # Fallback: return base range if network not calculated
+        return self.range
+
+    def get_effective_movement(self, board: "Board") -> int:
+        """Get effective movement value, considering online/offline status.
+
+        Args:
+            board: The Board object to check online status
+
+        Returns:
+            Effective movement value (0 if offline and not a relay)
+        """
+        # Import here to avoid circular import
+        from .constants import UNIT_RELAY, UNIT_SWIFT_RELAY
+
+        # Relays/swift relays can move even when offline
+        if self.unit_type in (UNIT_RELAY, UNIT_SWIFT_RELAY):
+            return self.movement
+
+        # Check if network has been calculated
+        # If network was never calculated, assume all units are online (use base stats)
+        if hasattr(board, '_network_calculated') and board._network_calculated:
+            # Other units need to be online to move
+            # Check if unit is active in the network
+            if hasattr(board, '_is_unit_active'):
+                # Find unit's position on board
+                for row in range(board.rows):
+                    for col in range(board.cols):
+                        unit = board.get_unit(row, col)
+                        if unit is self:
+                            if board._is_unit_active(row, col, self.owner):
+                                return self.movement
+                            return 0
+
+        # Fallback: return base movement if network not calculated
+        return self.movement
 
 
 class Infantry(Unit):
