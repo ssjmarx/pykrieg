@@ -117,16 +117,15 @@ class TestDisplayCoordinateMapping:
         display = BoardDisplay(DisplayMode.COMPATIBILITY)
         headers = display._get_column_headers_text()
 
-        # Should have A-Y (25 columns) plus spaces for row numbers
-        assert headers.startswith("  ")  # 3 spaces for row numbers
+        # Should have "  " prefix (2 spaces for row letter)
+        assert headers.startswith("  ")
 
-        # Should have all 25 columns
-        assert "A" in headers
-        assert "Y" in headers
+        # Should have all 25 columns (numbers 1-25)
+        assert "1" in headers
+        assert "25" in headers
 
-        # Count columns (excluding spaces)
-        parts = headers.split()
-        assert len(parts) >= 25  # At least 25 columns
+        # Should have 2 spaces at both ends for row letters
+        assert headers.endswith("  ")
 
     def test_get_unit_char_all_types(self):
         """Test unit character generation for all unit types."""

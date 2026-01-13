@@ -79,7 +79,7 @@ class TestParserEdgeCases:
 
     def test_parse_shorthand_coordinates_mixed_case(self):
         """Test shorthand coordinates with mixed case."""
-        result = parse_command("a1 b2")
+        result = parse_command("1A 2B")
 
         # Should handle mixed case
         assert result.command_type == CommandType.MOVE
@@ -277,21 +277,21 @@ class TestCoordinateParsing:
 
     def test_parse_spreadsheet_single_digit(self):
         """Test parsing single-digit spreadsheet coordinates."""
-        result = _parse_coordinates("A1")
+        result = _parse_coordinates("1A")
 
         assert result == (0, 0)
 
     def test_parse_spreadsheet_valid_range(self):
         """Test parsing valid spreadsheet coordinates at edge."""
-        result = _parse_coordinates("Y19")
+        result = _parse_coordinates("25S")
 
         # Column Y (index 24), Row 19 (0-indexed as 18)
         assert result == (18, 24)
 
     def test_parse_spreadsheet_mixed_case(self):
         """Test parsing spreadsheet with mixed case."""
-        result_upper = _parse_coordinates("A1")
-        result_lower = _parse_coordinates("a1")
+        result_upper = _parse_coordinates("1A")
+        result_lower = _parse_coordinates("1a")
 
         # Should be case-insensitive
         assert result_upper == result_lower
@@ -317,7 +317,7 @@ class TestCoordinateParsing:
 
     def test_parse_invalid_spreadsheet(self):
         """Test parsing invalid spreadsheet coordinates."""
-        result = _parse_coordinates("Z99")
+        result = _parse_coordinates("26CU")
 
         assert result is None
 

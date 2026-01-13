@@ -66,10 +66,11 @@ class BoardDisplay:
         if self.mode == DisplayMode.CURSES:
             self.COLOR_NORTH = 1      # Magenta for North units
             self.COLOR_SOUTH = 2      # Cyan for South units
-            self.COLOR_GRAY = 3        # Gray for headers
-            self.COLOR_SELECTED_BG = 4 # Magenta background for selection
-            self.COLOR_DEST_BG = 5     # Cyan background for destination
-            self.COLOR_ATTACK_BG = 6   # Red background for attack
+            self.COLOR_WHITE = 3        # White for column headers
+            self.COLOR_GRAY = 4        # Gray for alternating column headers
+            self.COLOR_SELECTED_BG = 5 # Magenta background for selection
+            self.COLOR_DEST_BG = 6     # Cyan background for destination
+            self.COLOR_ATTACK_BG = 7   # Red background for attack
 
     def render(self, board: Board, stdscr: Optional["_curses.window"] = None) -> Optional[str]:
         """Render the complete board display.
@@ -107,16 +108,15 @@ class BoardDisplay:
             y_offset: Y position offset (default 0, used in curses_input to avoid
                 overwriting game state)
         """
-        # Render column headers
-        headers = self._get_column_headers_text()
-        stdscr.addstr(y_offset, 0, headers, curses.color_pair(self.COLOR_GRAY))
+        # Render column headers with alternating colors to avoid overlap
+        self._render_column_headers_curses(board, stdscr, y_offset)
 
         # Render board rows with colors
         for row in range(board.rows):
             self._render_curses_row(board, stdscr, row, y_offset)
 
         # Render bottom column headers
-        stdscr.addstr(y_offset + board.rows + 1, 0, headers, curses.color_pair(self.COLOR_GRAY))
+        self._render_column_headers_curses(board, stdscr, y_offset + board.rows + 1)
 
     def _render_curses_row(
         self,
@@ -135,9 +135,9 @@ class BoardDisplay:
         """
         y_pos = y_offset + row + 1  # +1 for header
 
-        # Row number
-        row_num = str(row + 1).rjust(2)
-        logger.debug(f"Rendering row {row} (0-indexed), row_num='{row_num}', y_pos={y_pos}")
+        # Row letter (Debord's convention: rows as letters)
+        row_letter = chr(ord('A') + row)
+        logger.debug(f"Rendering row {row} (0-indexed), row_letter='{row_letter}', y_pos={y_pos}")
 
         # Explicitly erase the row number area before writing (to clear any terminal artifacts)
         # This prevents stray characters from appearing at the row number position
@@ -147,7 +147,7 @@ class BoardDisplay:
         logger.debug(
             f"About to write row_num at (y={y_pos}, x=0) with color pair {self.COLOR_GRAY}"
         )
-        stdscr.addstr(y_pos, 0, row_num, curses.color_pair(self.COLOR_GRAY))
+        stdscr.addstr(y_pos, 0, row_letter, curses.color_pair(self.COLOR_GRAY))
         logger.debug("Successfully wrote row_num")
 
         # Cells
@@ -192,8 +192,9 @@ class BoardDisplay:
                 # Regular space for non-swift units
                 stdscr.addstr(y_pos, x_pos + 1, " ")
 
-        # Right row number
-        stdscr.addstr(y_pos, 3 + (board.cols * 2) + 1, row_num, curses.color_pair(self.COLOR_GRAY))
+        # Right row letter
+        right_row_x = 3 + (board.cols * 2) + 1
+        stdscr.addstr(y_pos, right_row_x, row_letter, curses.color_pair(self.COLOR_GRAY))
 
     def _render_curses_cell_highlight(
         self,
@@ -267,25 +268,51 @@ class BoardDisplay:
         """Get column headers as plain text.
 
         Returns:
-            String of column letters (spreadsheet style)
+            String of column numbers (spreadsheet style: columns as numbers)
         """
-        headers = ["  "]  # Space for row number (2 chars to match row numbers)
+        headers = ["  "]  # Space for row letter (2 chars to match row letters)
 
         for col in range(25):
-            # Convert to spreadsheet-style letter (A=0, B=1, Z=25, etc.)
-            col_index = col + 1  # Convert to 1-based
-            col_letters: list[str] = []
-            temp = col_index
-            while temp > 0:
-                temp -= 1
-                col_letters.insert(0, chr(ord('A') + temp % 26))
-                temp //= 26
-            col_str = ''.join(col_letters)
-            headers.append(col_str)
+            # Column numbers 1-25 (Debord's convention: columns as numbers)
+            # Right-justify to 2 chars
+            col_num = str(col + 1).rjust(2)
+            headers.append(col_num)
 
-        headers.append("  ")  # Space for row number
+        headers.append("  ")  # Space for row letter
 
-        return " ".join(headers)
+        return "".join(headers)
+
+    def _render_column_headers_curses(
+        self,
+        board: Board,
+        stdscr: "_curses.window",
+        y_offset: int = 0
+    ) -> None:
+        """Render column headers with alternating colors to avoid visual overlap.
+
+        Args:
+            board: The game board
+            stdscr: curses window object
+            y_offset: Y position offset
+        """
+        # Space for row letter
+        stdscr.addstr(y_offset, 0, "  ", curses.color_pair(self.COLOR_WHITE))
+
+        for col in range(board.cols):
+            # Column numbers 1-25
+            col_num = str(col + 1).rjust(2)
+
+            # Alternate between white and gray for subtle pattern
+            color = self.COLOR_WHITE if col % 2 == 0 else self.COLOR_GRAY
+            # Position after row header space
+            x_pos = 2 + (col * 2)
+
+            # Apply dim attribute for gray color to create subtle difference
+            attrs = curses.A_DIM if color == self.COLOR_GRAY else 0
+            stdscr.addstr(y_offset, x_pos, col_num, curses.color_pair(color) | attrs)
+
+        # Space for row letter
+        stdscr.addstr(y_offset, 2 + (board.cols * 2), "  ", curses.color_pair(self.COLOR_WHITE))
 
     def _get_unit_glyph(self, unit: object, online: bool = True) -> str:
         """Get the visual glyph for a unit based on type and online status.
@@ -400,19 +427,20 @@ class BoardDisplay:
             row: Row number to render (0-19)
 
         Returns:
-            String representation of the row (ASCII)
+            String representation of row (ASCII)
         """
         cells = []
 
-        # Row number (1-indexed for spreadsheet-style)
-        cells.append(str(row + 1).rjust(2))
+        # Row letter (Debord's convention: rows as letters)
+        row_letter = chr(ord('A') + row)
+        cells.append(row_letter.rjust(2))
 
         for col in range(board.cols):
             cell = self._render_cell_compat(board, row, col)
             cells.append(cell)
 
-        # Row number (right)
-        cells.append(str(row + 1).rjust(2))
+        # Row letter (right)
+        cells.append(row_letter.rjust(2))
 
         return " ".join(cells)
 
@@ -525,9 +553,9 @@ def render_game_state(board: Board, display_mode: DisplayMode) -> str:
     """
     lines = []
 
-    lines.append("=" * 60)
+    lines.append("=" * 50)
     lines.append("PYKRIEG - Guy Debord's Le Jeu de la Guerre")
-    lines.append("=" * 60)
+    lines.append("=" * 50)
     lines.append("")
 
     # Turn information

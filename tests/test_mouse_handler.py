@@ -303,7 +303,7 @@ class TestMouseHandlerStatus:
         # Only check for selection info if mouse is active
         if "ACTIVE" in status:
             assert "Selected:" in status
-            assert "K6" in status  # Row 5, Col 10 = K6
+            assert "11F" in status  # Row 5, Col 10 = K6
 
     def test_get_status_display_no_selection(self):
         """Test status display without selection."""
@@ -374,4 +374,4 @@ class TestMouseHandlerSelection:
 
         assert "move K6 K7" in display
         assert "move K7 K8" in display
-        assert "6,10" in display or "K7" in display  # Either format
+        assert "6,10" in display or "11G" in display  # Either format

@@ -58,10 +58,10 @@ def test_all_core_data_structures_implemented():
     assert board.territory_boundary == 10
 
     # Test coordinate system - spreadsheet
-    assert Board.spreadsheet_to_tuple("A1") == (0, 0)
-    assert Board.spreadsheet_to_tuple("Y25") == (24, 24)
-    assert Board.tuple_to_spreadsheet(0, 0) == "A1"
-    assert Board.tuple_to_spreadsheet(24, 24) == "Y25"
+    assert Board.spreadsheet_to_tuple("1A") == (0, 0)
+    assert Board.spreadsheet_to_tuple("25Y") == (24, 24)
+    assert Board.tuple_to_spreadsheet(0, 0) == "1A"
+    assert Board.tuple_to_spreadsheet(24, 24) == "25Y"
 
     # Test coordinate system - index
     assert Board.tuple_to_index(0, 0) == 0
@@ -198,12 +198,12 @@ def test_acceptance_criteria_coordinate_system():
     Board()
 
     # Test tuple format (internal)
-    assert Board.spreadsheet_to_tuple("A1") == (0, 0)
-    assert Board.tuple_to_spreadsheet(0, 0) == "A1"
+    assert Board.spreadsheet_to_tuple("1A") == (0, 0)
+    assert Board.tuple_to_spreadsheet(0, 0) == "1A"
 
     # Test string format (spreadsheet)
-    assert Board.spreadsheet_to_tuple("G7") == (6, 6)
-    assert Board.tuple_to_spreadsheet(6, 6) == "G7"
+    assert Board.spreadsheet_to_tuple("7G") == (6, 6)
+    assert Board.tuple_to_spreadsheet(6, 6) == "7G"
 
     # Test index format (row-major)
     assert Board.tuple_to_index(0, 0) == 0
@@ -212,7 +212,7 @@ def test_acceptance_criteria_coordinate_system():
     assert Board.index_to_tuple(499) == (19, 24)
 
     # Test roundtrip conversions
-    spreadsheet = "H10"
+    spreadsheet = "8J"
     tuple_coord = Board.spreadsheet_to_tuple(spreadsheet)
     index = Board.tuple_to_index(*tuple_coord)
     back_tuple = Board.index_to_tuple(index)

@@ -64,12 +64,12 @@ Pykrieg uses a 0-indexed (row, col) coordinate system:
 ```python
 from pykrieg import Board
 
-# Convert to/from spreadsheet notation (e.g., "A1")
-print(Board.tuple_to_spreadsheet(0, 0))  # 'A1'
-print(Board.tuple_to_spreadsheet(5, 10))  # 'F11'
+# Convert to/from spreadsheet notation (e.g., "1A")
+print(Board.tuple_to_spreadsheet(0, 0))  # '1A'
+print(Board.tuple_to_spreadsheet(5, 10))  # '6K'
 
-print(Board.spreadsheet_to_tuple('A1'))  # (0, 0)
-print(Board.spreadsheet_to_tuple('F11'))  # (5, 10)
+print(Board.spreadsheet_to_tuple('1A'))  # (0, 0)
+print(Board.spreadsheet_to_tuple('6K'))  # (5, 10)
 
 # Territory ownership
 print(board.get_territory(0, 0))  # 'NORTH' (north side)

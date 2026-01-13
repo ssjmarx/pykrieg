@@ -345,21 +345,22 @@ class Board:
         Convert spreadsheet-style coordinate to internal (row, col) tuple.
 
         Args:
-            coord: String in spreadsheet format (e.g., "A1", "AA10", "Y25")
+            coord: String in spreadsheet format (e.g., "1A", "10AA", "25Y")
 
         Returns:
             Tuple (row, col) where:
             - row: 0-based from top
             - col: 0-based from left
 
-        Note: Coordinate origin is top-left (A1 = top-left corner)
-              No flipping needed - direct mapping with 1-based to 0-based conversion
+        Note: Coordinate origin is top-left (1A = top-left corner)
+              Format: NUMBERS (column) + LETTERS (row)
+              Debord's original convention: columns as numbers, rows as letters
 
         Example:
-            "A1" -> (0, 0)      (top-left corner)
-            "Y25" -> (24, 24)   (bottom-right on 25-col board)
-            "AA10" -> (9, 26)   (10th row, 27th column)
-            "AB1" -> (0, 27)     (top row, 28th column)
+            "1A" -> (0, 0)      (top-left corner)
+            "25T" -> (19, 24)   (bottom-right on 25-col board)
+            "10AA" -> (26, 9)    (27th column, 10th row)
+            "27A" -> (0, 26)     (top row, 28th column)
         """
         if not isinstance(coord, str):
             raise TypeError(f"Coord must be string, got {type(coord)}")
@@ -372,29 +373,29 @@ class Board:
         if ' ' in coord:
             raise ValueError(f"Invalid coord format: {coord}")
 
-        # Separate letters (column) and numbers (row)
+        # Separate numbers (column) and letters (row) - NUMBERS FIRST
         i = 0
-        while i < len(coord) and coord[i].isalpha():
+        while i < len(coord) and coord[i].isdigit():
             i += 1
 
-        col_letters = coord[:i]
-        row_number = coord[i:]
+        col_number = coord[:i]
+        row_letters = coord[i:]
 
-        if not col_letters or not row_number:
+        if not col_number or not row_letters:
             raise ValueError(f"Invalid coord format: {coord}")
 
-        # Parse row (direct conversion, no flip needed)
-        row_index = int(row_number) - 1  # Convert 1-based to 0-based
+        # Parse column (direct conversion from number)
+        col_index = int(col_number) - 1  # Convert 1-based to 0-based
 
-        # Validate row index (must be >= 0 after conversion)
-        if row_index < 0:
-            raise ValueError(f"Invalid coord format: {coord} (row must be >= 1)")
+        # Validate column index (must be >= 0 after conversion)
+        if col_index < 0:
+            raise ValueError(f"Invalid coord format: {coord} (column must be >= 1)")
 
-        # Parse column (A=0, Z=25, AA=26, AZ=51, BA=52, etc.)
-        col_index = 0
-        for char in col_letters:
-            col_index = col_index * 26 + (ord(char.upper()) - ord('A') + 1)
-        col_index -= 1  # Convert to 0-based
+        # Parse row (A=0, Z=25, AA=26, AZ=51, BA=52, etc.)
+        row_index = 0
+        for char in row_letters:
+            row_index = row_index * 26 + (ord(char.upper()) - ord('A') + 1)
+        row_index -= 1  # Convert to 0-based
 
         return (row_index, col_index)
 
@@ -408,32 +409,33 @@ class Board:
             col: Column number (0-24, 0-based from left)
 
         Returns:
-            String in spreadsheet format (e.g., "A1", "AA10", "Y25")
+            String in spreadsheet format (e.g., "1A", "10AA", "25Y")
 
-        Note: Coordinate origin is top-left (A1 = top-left corner)
-              No flipping needed - direct mapping with 0-based to 1-based conversion
+        Note: Coordinate origin is top-left (1A = top-left corner)
+              Format: NUMBERS (column) + LETTERS (row)
+              Debord's original convention: columns as numbers, rows as letters
 
         Example:
-            (0, 0) -> "A1"      (top-left corner)
-            (24, 24) -> "Y25"   (bottom-right on 25-col board)
-            (9, 26) -> "AA10"   (10th row, 27th column)
-            (0, 27) -> "AB1"     (top row, 28th column)
+            (0, 0) -> "1A"      (top-left corner)
+            (19, 24) -> "25T"   (bottom-right on 25-col board)
+            (9, 26) -> "27J"    (10th row, 27th column)
+            (0, 27) -> "28A"     (top row, 28th column)
         """
         if not isinstance(row, int) or not isinstance(col, int):
             raise TypeError("Row and col must be integers")
 
-        # Format column (0=A, 1=B, 25=Z, 26=AA, etc.)
-        col_index = col + 1  # Convert to 1-based
-        col_letters: List[str] = []
-        while col_index > 0:
-            col_index -= 1
-            col_letters.insert(0, chr(ord('A') + col_index % 26))
-            col_index //= 26
+        # Format column (direct number conversion)
+        col_number = col + 1  # Convert to 1-based
 
-        # Format row (direct conversion, no flip needed)
-        row_number = row + 1  # Convert to 1-based
+        # Format row (0=A, 1=B, 19=T, 20=U, etc.)
+        row_index = row + 1  # Convert to 1-based
+        row_letters: List[str] = []
+        while row_index > 0:
+            row_index -= 1
+            row_letters.insert(0, chr(ord('A') + row_index % 26))
+            row_index //= 26
 
-        return f"{''.join(col_letters)}{row_number}"
+        return f"{col_number}{''.join(row_letters)}"
 
     @staticmethod
     def tuple_to_index(row: int, col: int, board_cols: int = 25) -> int:

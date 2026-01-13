@@ -273,10 +273,10 @@ class TestCommandParser:
 
         # Should use spreadsheet format (e.g., "K6 → K7")
         assert "→" in result
-        # Row 5, col 10 is "K6"
-        # Row 6, col 10 is "K7"
-        assert "K6" in result or "F11" in result  # Either spreadsheet format
-        assert "K7" in result or "F12" in result
+        # Row 5, col 10 is "11F"
+        # Row 6, col 10 is "11G"
+        assert "11F" in result or "6K" in result  # Either spreadsheet format
+        assert "11G" in result or "6L" in result
 
     def test_get_help_text(self):
         """Test getting help text."""
@@ -397,7 +397,7 @@ class TestMouseClickMovementPhase:
         # Should return spreadsheet format (e.g., "K6 K7")
         assert result is not None
         assert " " in result  # Should have space between coords
-        # Row 5, col 10 is "K6", Row 6, col 10 is "K7"
+        # Row 5, col 10 is "11F", Row 6, col 10 is "11G"
         assert handler.selected_square is None
 
 
@@ -581,8 +581,8 @@ class TestConsoleGameIntegration:
         # Calculate networks so that infantry is online
         game.board.calculate_network('NORTH')
 
-        # Use spreadsheet format (e.g., "M6 M7" - column M = 12)
-        command = parse_command("M6 M7")
+        # Use new spreadsheet format (e.g., "13F 13G" - column 13, row F=5 to G=6)
+        command = parse_command("13F 13G")
         is_valid, error = validate_command(game.board, command)
 
         assert is_valid is True

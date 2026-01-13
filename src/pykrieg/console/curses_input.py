@@ -45,10 +45,11 @@ class CursesInput:
         # Color pair indices (1-based for curses)
         self.COLOR_NORTH = 1      # Magenta for North units
         self.COLOR_SOUTH = 2      # Cyan for South units
-        self.COLOR_GRAY = 3        # Gray for headers
-        self.COLOR_SELECTED_BG = 4 # Magenta background for selection
-        self.COLOR_DEST_BG = 5     # Cyan background for destination
-        self.COLOR_ATTACK_BG = 6   # Red background for attack
+        self.COLOR_WHITE = 3       # White for column headers
+        self.COLOR_GRAY = 4        # Gray for alternating column headers
+        self.COLOR_SELECTED_BG = 5 # Magenta background for selection
+        self.COLOR_DEST_BG = 6     # Cyan background for destination
+        self.COLOR_ATTACK_BG = 7   # Red background for attack
 
     def _init_colors(self, stdscr: "_curses.window") -> None:
         """Initialize curses color pairs.
@@ -62,6 +63,7 @@ class CursesInput:
         # Initialize color pairs (foreground, background)
         curses.init_pair(self.COLOR_NORTH, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
         curses.init_pair(self.COLOR_SOUTH, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_WHITE, curses.COLOR_WHITE, curses.COLOR_BLACK)
         curses.init_pair(self.COLOR_GRAY, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
         # Background colors for highlights

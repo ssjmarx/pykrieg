@@ -146,7 +146,7 @@ def _parse_move_command(parts: list) -> Command:
     to_result = _parse_coordinates(to_coords)
 
     if not from_result or not to_result:
-        msg = "Invalid coordinates. Use: A1, B10 (spreadsheet) or 5,10 (numeric)"
+        msg = "Invalid coordinates. Use: 1A, 10B (spreadsheet) or 5,10 (numeric)"
         return Command(CommandType.INVALID, {"error": msg})
 
     return Command(CommandType.MOVE, {
@@ -170,7 +170,7 @@ def _parse_move_shorthand(parts: list) -> Command:
     to_result = _parse_coordinates(parts[1])
 
     if not from_result or not to_result:
-        msg = "Invalid coordinates. Use: A1, B10 (spreadsheet) or 5,10 (numeric)"
+        msg = "Invalid coordinates. Use: 1A, 10B (spreadsheet) or 5,10 (numeric)"
         return Command(CommandType.INVALID, {"error": msg})
 
     return Command(CommandType.MOVE, {
@@ -199,7 +199,7 @@ def _parse_attack_command(parts: list) -> Command:
     result = _parse_coordinates(target_coords)
 
     if not result:
-        msg = "Invalid coordinates. Use: G12 (spreadsheet) or 5,12 (numeric)"
+        msg = "Invalid coordinates. Use: 12G (spreadsheet) or 5,12 (numeric)"
         return Command(CommandType.INVALID, {"error": msg})
 
     return Command(CommandType.ATTACK, {
@@ -304,18 +304,18 @@ def _parse_coordinates(coord_str: str) -> Optional[Tuple[int, int]]:
     """Parse coordinate string.
 
     Formats:
-    - Spreadsheet: "A1", "B10", "Y25" (letters + numbers)
+    - Spreadsheet: "1A", "10B", "25T" (numbers + letters)
     - Tuple numeric: "5,10", "5 10" (row, col)
 
     Args:
-        coord_str: Coordinate string (e.g., "A1", "5,10", "5 10")
+        coord_str: Coordinate string (e.g., "1A", "5,10", "5 10")
 
     Returns:
         Tuple of (row, col) or None if invalid
     """
     from ..board import Board
 
-    # Try spreadsheet-style first (e.g., "A1", "B10", "Y25")
+    # Try spreadsheet-style first (e.g., "1A", "10B", "25T")
     try:
         row, col = Board.spreadsheet_to_tuple(coord_str)
         if 0 <= row < 20 and 0 <= col < 25:
@@ -567,10 +567,10 @@ def get_help_text() -> str:
         "  quit, q, exit        Quit game",
         "",
         "Coordinate Formats:",
-        "  Spreadsheet: A1, B10, Y25 (letters + numbers)",
+        "  Spreadsheet: 1A, 10B, 25T (numbers + letters)",
         "  Numeric: 5,10 or 5 10 (row, column)",
-        "  Rows: 0-19 (top to bottom)",
-        "  Columns: A-Y (left to right, 0-24)",
+        "  Rows: A-T (top to bottom, 0-19)",
+        "  Columns: 1-25 (left to right, 0-24)",
     ]
 
     return "\n".join(lines)

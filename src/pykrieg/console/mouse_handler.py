@@ -85,7 +85,7 @@ class MouseHandler:
             col: Column number
 
         Returns:
-            Command string or None (spreadsheet-style coordinates)
+            Command string or None (spreadsheet-style coordinates: numbers + letters)
         """
         unit = self.board.get_unit(row, col)
 
@@ -126,7 +126,7 @@ class MouseHandler:
             col: Column number
 
         Returns:
-            Command string or None (spreadsheet-style coordinates)
+            Command string or None (spreadsheet-style coordinates: numbers + letters)
         """
         unit = self.board.get_unit(row, col)
 
@@ -147,7 +147,7 @@ class MouseHandler:
         """Get display string showing current mouse status.
 
         Returns:
-            Status string for display (spreadsheet-style coordinates)
+            Status string for display (spreadsheet-style coordinates: numbers + letters)
         """
         if not self.mouse_available:
             return "[MOUSE DISABLED] Keyboard input only"

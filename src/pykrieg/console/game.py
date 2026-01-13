@@ -100,12 +100,12 @@ class ConsoleGame:
         """Display welcome message."""
         lines = [
             "",
-            "╔════════════════════════════════════════════════════════╗",
-            "║                                                        ║",
-            "║          PYKRIEG - Console Interface v0.2.0            ║",
-            "║    Guy Debord's Le Jeu de la Guerre                    ║",
-            "║                                                        ║",
-            "╚════════════════════════════════════════════════════════╝",
+            "╔══════════════════════════════════════════════════╗",
+            "║                                                  ║",
+            "║        PYKRIEG - Console Interface v0.2.0        ║",
+            "║         Guy Debord's Le Jeu de la Guerre         ║",
+            "║                                                  ║",
+            "╚══════════════════════════════════════════════════╝",
             "",
             "Type 'help' for commands, 'quit' to exit.",
             "",

@@ -12,35 +12,35 @@ class TestCoordinateConversions:
     def test_spreadsheet_to_tuple(self):
         """Test converting spreadsheet coordinates to tuples."""
         # Top-left corner
-        assert Board.spreadsheet_to_tuple("A1") == (0, 0)
-        assert Board.spreadsheet_to_tuple("Y1") == (0, 24)
+        assert Board.spreadsheet_to_tuple("1A") == (0, 0)
+        assert Board.spreadsheet_to_tuple("25A") == (0, 24)
 
         # Bottom row (row 19 in 0-based from top)
-        assert Board.spreadsheet_to_tuple("A20") == (19, 0)
-        assert Board.spreadsheet_to_tuple("Y20") == (19, 24)
+        assert Board.spreadsheet_to_tuple("1T") == (19, 0)
+        assert Board.spreadsheet_to_tuple("25T") == (19, 24)
 
         # Middle rows
-        assert Board.spreadsheet_to_tuple("A10") == (9, 0)
-        assert Board.spreadsheet_to_tuple("AA10") == (9, 26)
+        assert Board.spreadsheet_to_tuple("1J") == (9, 0)
+        assert Board.spreadsheet_to_tuple("27J") == (9, 26)
 
     def test_tuple_to_spreadsheet(self):
         """Test converting tuples to spreadsheet coordinates."""
         # Top-left corner
-        assert Board.tuple_to_spreadsheet(0, 0) == "A1"
-        assert Board.tuple_to_spreadsheet(0, 24) == "Y1"
+        assert Board.tuple_to_spreadsheet(0, 0) == "1A"
+        assert Board.tuple_to_spreadsheet(0, 24) == "25A"
 
         # Bottom row (row 19)
-        assert Board.tuple_to_spreadsheet(19, 0) == "A20"
-        assert Board.tuple_to_spreadsheet(19, 24) == "Y20"
+        assert Board.tuple_to_spreadsheet(19, 0) == "1T"
+        assert Board.tuple_to_spreadsheet(19, 24) == "25T"
 
         # Middle rows
-        assert Board.tuple_to_spreadsheet(9, 0) == "A10"
-        assert Board.tuple_to_spreadsheet(9, 26) == "AA10"
+        assert Board.tuple_to_spreadsheet(9, 0) == "1J"
+        assert Board.tuple_to_spreadsheet(9, 26) == "27J"
 
     def test_spreadsheet_roundtrip(self):
         """Test spreadsheet coordinate conversion roundtrip."""
         # Spreadsheet -> Tuple -> Spreadsheet
-        original = "G7"
+        original = "7G"
         tup = Board.spreadsheet_to_tuple(original)
         back = Board.tuple_to_spreadsheet(*tup)
         assert back == original
@@ -54,16 +54,16 @@ class TestCoordinateConversions:
     def test_multi_column_notation(self):
         """Test multi-letter column notation."""
         # AA is 26th column (index 25)
-        assert Board.spreadsheet_to_tuple("AA1") == (0, 26)
-        assert Board.tuple_to_spreadsheet(0, 26) == "AA1"
+        assert Board.spreadsheet_to_tuple("27A") == (0, 26)
+        assert Board.tuple_to_spreadsheet(0, 26) == "27A"
 
         # AZ is 52nd column (index 51)
-        assert Board.spreadsheet_to_tuple("AZ1") == (0, 51)
-        assert Board.tuple_to_spreadsheet(0, 51) == "AZ1"
+        assert Board.spreadsheet_to_tuple("52A") == (0, 51)
+        assert Board.tuple_to_spreadsheet(0, 51) == "52A"
 
         # BA is 53rd column (index 52)
-        assert Board.spreadsheet_to_tuple("BA1") == (0, 52)
-        assert Board.tuple_to_spreadsheet(0, 52) == "BA1"
+        assert Board.spreadsheet_to_tuple("53A") == (0, 52)
+        assert Board.tuple_to_spreadsheet(0, 52) == "53A"
 
     def test_invalid_spreadsheet_string(self):
         """Test invalid spreadsheet coordinates raise errors."""
@@ -80,7 +80,7 @@ class TestCoordinateConversions:
             Board.spreadsheet_to_tuple("")  # Empty string
 
         with pytest.raises(ValueError):
-            Board.spreadsheet_to_tuple("A0")  # Zero row (invalid)
+            Board.spreadsheet_to_tuple("1")  # Zero row (invalid)
 
         with pytest.raises(ValueError):
             Board.spreadsheet_to_tuple("A-5")  # Negative row (invalid)
@@ -149,27 +149,27 @@ class TestCoordinateConversions:
 
     def test_spreadsheet_case_insensitive(self):
         """Test that spreadsheet coordinates are case-insensitive."""
-        assert Board.spreadsheet_to_tuple("a1") == Board.spreadsheet_to_tuple("A1")
-        assert Board.spreadsheet_to_tuple("ab10") == Board.spreadsheet_to_tuple("AB10")
-        assert Board.spreadsheet_to_tuple("Zy20") == Board.spreadsheet_to_tuple("ZY20")
+        assert Board.spreadsheet_to_tuple("1a") == Board.spreadsheet_to_tuple("1A")
+        assert Board.spreadsheet_to_tuple("1j") == Board.spreadsheet_to_tuple("1J")
+        assert Board.spreadsheet_to_tuple("1t") == Board.spreadsheet_to_tuple("1T")
 
     def test_various_spreadsheet_coordinates(self):
         """Test a variety of spreadsheet coordinate conversions."""
         test_cases = [
-            ("A1", (0, 0)),
-            ("B1", (0, 1)),
-            ("Z1", (0, 25)),
-            ("AA1", (0, 26)),
-            ("AB1", (0, 27)),
-            ("AZ1", (0, 51)),
-            ("BA1", (0, 52)),
-            ("ZZ1", (0, 701)),
-            ("A2", (1, 0)),
-            ("A10", (9, 0)),
-            ("A20", (19, 0)),
-            ("B5", (4, 1)),
-            ("G7", (6, 6)),
-            ("T15", (14, 19)),
+            ("1A", (0, 0)),
+            ("2A", (0, 1)),
+            ("26A", (0, 25)),
+            ("27A", (0, 26)),
+            ("28A", (0, 27)),
+            ("52A", (0, 51)),
+            ("53A", (0, 52)),
+            ("702A", (0, 701)),
+            ("1B", (1, 0)),
+            ("1J", (9, 0)),
+            ("1T", (19, 0)),
+            ("2E", (4, 1)),
+            ("7G", (6, 6)),
+            ("20O", (14, 19)),
         ]
 
         for coord, expected in test_cases:
@@ -179,24 +179,24 @@ class TestCoordinateConversions:
     def test_coordinate_boundary_values(self):
         """Test coordinate conversions at boundary values."""
         # Minimum values
-        assert Board.spreadsheet_to_tuple("A1") == (0, 0)
-        assert Board.tuple_to_spreadsheet(0, 0) == "A1"
+        assert Board.spreadsheet_to_tuple("1A") == (0, 0)
+        assert Board.tuple_to_spreadsheet(0, 0) == "1A"
         assert Board.tuple_to_index(0, 0) == 0
         assert Board.index_to_tuple(0) == (0, 0)
 
         # Maximum values for 20x25 board
-        assert Board.tuple_to_spreadsheet(19, 24) == "Y20"
+        assert Board.tuple_to_spreadsheet(19, 24) == "25T"
         assert Board.tuple_to_index(19, 24) == 499
         assert Board.index_to_tuple(499) == (19, 24)
 
-    def test_all_single_letter_columns(self):
-        """Test all single-letter column names (A-Z)."""
-        for i in range(26):
-            col_letter = chr(ord('A') + i)
-            coord = f"{col_letter}1"
-            expected = (0, i)
+    def test_all_single_letter_rows(self):
+        """Test all single-letter row names (A-T)."""
+        for i in range(20):
+            row_letter = chr(ord('A') + i)
+            coord = f"1{row_letter}"
+            expected = (i, 0)
             assert Board.spreadsheet_to_tuple(coord) == expected
-            assert Board.tuple_to_spreadsheet(0, i) == col_letter + "1"
+            assert Board.tuple_to_spreadsheet(i, 0) == coord
 
     def test_index_to_tuple_edge_cases(self):
         """Test index_to_tuple at edge cases."""
@@ -265,21 +265,21 @@ class TestCoordinateConversions:
     def test_extremely_large_spreadsheet_coordinates(self):
         """Test conversion of very large spreadsheet coordinates."""
         # AAA is 703rd column (26^2 + 26 + 1)
-        assert Board.spreadsheet_to_tuple("AAA1") == (0, 702)
-        assert Board.tuple_to_spreadsheet(0, 702) == "AAA1"
+        assert Board.spreadsheet_to_tuple("703A") == (0, 702)
+        assert Board.tuple_to_spreadsheet(0, 702) == "703A"
 
         # ZZZ is 18278th column (26^3 + 26^2 + 26)
-        assert Board.spreadsheet_to_tuple("ZZZ1") == (0, 18277)
-        assert Board.tuple_to_spreadsheet(0, 18277) == "ZZZ1"
+        assert Board.spreadsheet_to_tuple("18278A") == (0, 18277)
+        assert Board.tuple_to_spreadsheet(0, 18277) == "18278A"
 
         # Test with larger row numbers
-        assert Board.spreadsheet_to_tuple("AB100") == (99, 27)
-        assert Board.tuple_to_spreadsheet(99, 27) == "AB100"
+        assert Board.spreadsheet_to_tuple("28CV") == (99, 27)
+        assert Board.tuple_to_spreadsheet(99, 27) == "28CV"
 
     def test_spreadsheet_with_mixed_case(self):
         """Test spreadsheet coordinates with mixed case letters."""
-        assert Board.spreadsheet_to_tuple("AbCd1") == Board.spreadsheet_to_tuple("ABCD1")
-        assert Board.tuple_to_spreadsheet(5, 5).lower() == Board.tuple_to_spreadsheet(5, 5).lower()
+        assert Board.spreadsheet_to_tuple("1AbCd") == Board.spreadsheet_to_tuple("1ABCD")
+        assert Board.tuple_to_spreadsheet(1, 6).lower() == Board.tuple_to_spreadsheet(1, 6).lower()
 
     def test_spreadsheet_with_special_characters(self):
         """Test spreadsheet coordinates with special characters raise error."""

@@ -63,16 +63,16 @@ class TestStressTests:
     def test_extreme_coordinate_conversions(self):
         """Test extreme spreadsheet coordinates."""
         # Test very large column numbers
-        assert Board.spreadsheet_to_tuple("ZZZ1") == (0, 18277)
-        assert Board.tuple_to_spreadsheet(0, 18277) == "ZZZ1"
+        assert Board.spreadsheet_to_tuple("18278A") == (0, 18277)
+        assert Board.tuple_to_spreadsheet(0, 18277) == "18278A"
 
         # Test large row numbers
-        assert Board.spreadsheet_to_tuple("A999") == (998, 0)
-        assert Board.tuple_to_spreadsheet(998, 0) == "A999"
+        assert Board.spreadsheet_to_tuple("1ALK") == (998, 0)
+        assert Board.tuple_to_spreadsheet(998, 0) == "1ALK"
 
         # Test both large
-        assert Board.spreadsheet_to_tuple("ZZZ999") == (998, 18277)
-        assert Board.tuple_to_spreadsheet(998, 18277) == "ZZZ999"
+        assert Board.spreadsheet_to_tuple("18278ALK") == (998, 18277)
+        assert Board.tuple_to_spreadsheet(998, 18277) == "18278ALK"
 
     def test_board_with_all_unit_types_on_every_square(self):
         """Test board with alternating all 7 unit types on every square."""
@@ -257,7 +257,7 @@ class TestPieceStructureValidation:
         board = Board()
 
         # Invalid owners should be accepted
-        invalid_owners = ['EAST', 'WEST', 'NEUTRAL', 'PLAYER1', 'PLAYER2']
+        invalid_owners = ['EAST', 'WEST', 'NEUTRAL', '195620352A', '195620352B']
         for invalid_owner in invalid_owners:
             board.set_piece(5, 10, {'type': 'INFANTRY', 'owner': invalid_owner})
             piece = board.get_piece(5, 10)
@@ -429,7 +429,7 @@ class TestPerformanceSanityChecks:
     def test_coordinate_conversions_performance(self):
         """Test 10,000 coordinate conversions complete in <1 second."""
         conversions = [
-            lambda: Board.spreadsheet_to_tuple("ZZZ999"),
+            lambda: Board.spreadsheet_to_tuple("18278ALK"),
             lambda: Board.tuple_to_spreadsheet(998, 18277),
             lambda: Board.tuple_to_index(998, 18277),
             lambda: Board.index_to_tuple(9999, board_cols=100, board_rows=100),
