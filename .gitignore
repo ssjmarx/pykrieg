@@ -75,3 +75,7 @@ docs/_templates/
 .DS_Store
 Thumbs.db
 *.ignore*
+
+# dont upload these
+*.log
+*.bak
