@@ -59,7 +59,7 @@ class BoardDisplay:
             'row_header_width': 3,        # Width of row number labels (e.g., "1 ")
             'cell_width': 2,               # Width of each cell (char + space)
             'cell_positions': {},        # Maps (row, col) -> (screen_x, screen_y)
-            'highlights': {},             # Maps (row, col) -> highlight_type
+            'highlights': {},             # Maps (row, col) -> highlight_type or list of types
         }
 
         # Curses color pairs (only initialized in CURSES mode)
@@ -71,8 +71,11 @@ class BoardDisplay:
             self.COLOR_SELECTED_BG = 5 # Magenta background for selection
             self.COLOR_DEST_BG = 6     # Cyan background for destination
             self.COLOR_ATTACK_BG = 7   # Red background for attack
-            self.COLOR_TERRAIN_DARK = 8   # Dark green for empty terrain outside LOC
-            self.COLOR_TERRAIN_LIGHT = 9  # Light green for empty terrain inside LOC
+            self.COLOR_DEFENSE_BG = 8  # Blue background for defense
+            self.COLOR_BLOCKED_BG = 9   # Gray background for blocked units
+            self.COLOR_CHARGING_BG = 10  # Gold background for charging cavalry
+            self.COLOR_TERRAIN_DARK = 11   # Dark green for empty terrain outside LOC
+            self.COLOR_TERRAIN_LIGHT = 12  # Light green for empty terrain inside LOC
 
     def render(self, board: Board, stdscr: Optional["_curses.window"] = None) -> Optional[str]:
         """Render the complete board display.
@@ -166,7 +169,8 @@ class BoardDisplay:
             elif unit is None:
                 # Empty cell (terrain) - color based on LOC status
                 in_loc = board.is_unit_online(row, col, board.turn)
-                color = self.COLOR_TERRAIN_LIGHT if in_loc else self.COLOR_TERRAIN_DARK
+                # Swapped: Dark = LOC-covered (your territory), Light = non-LOC (available)
+                color = self.COLOR_TERRAIN_DARK if in_loc else self.COLOR_TERRAIN_LIGHT
                 stdscr.addstr(y_pos, x_pos, "·", curses.color_pair(color))
             else:
                 # Unit with player color
@@ -225,6 +229,12 @@ class BoardDisplay:
             bg_pair = self.COLOR_DEST_BG
         elif highlight_type == 'attack':
             bg_pair = self.COLOR_ATTACK_BG
+        elif highlight_type == 'defense':
+            bg_pair = self.COLOR_DEFENSE_BG
+        elif highlight_type == 'blocked':
+            bg_pair = self.COLOR_BLOCKED_BG
+        elif highlight_type == 'charging':
+            bg_pair = self.COLOR_CHARGING_BG
         else:
             return
 
@@ -255,14 +265,14 @@ class BoardDisplay:
         # Render with background color
         stdscr.addstr(y, x, text, curses.color_pair(bg_pair))
 
-        # Check if this is a swift unit and add star after the cell
+        # Check if this is a swift unit and add star after cell
         unit_type = getattr(unit, 'unit_type', '').upper() if unit else ''
         is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
 
         if is_swift_unit:
             owner = getattr(unit, 'owner', None) if unit else None
             color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
-            # Render star in the space position with same color as unit
+            # Render star in space position with same color as unit
             stdscr.addstr(y, x + 1, "★", curses.color_pair(color))
         else:
             # Regular space for non-swift units

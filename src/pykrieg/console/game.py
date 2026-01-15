@@ -265,10 +265,20 @@ class ConsoleGame:
                     # Clear highlights before executing attack
                     self.display.clear_highlights()
                     # Switch to battle phase and execute attack
-                    self.board.switch_to_battle_phase()
-                    if self.curses_input:
-                        self.curses_input.update_board(self.board)
-                    self._execute_command(command)
+                    try:
+                        self.board.switch_to_battle_phase()
+                        if self.curses_input:
+                            self.curses_input.update_board(self.board)
+                        self._execute_command(command)
+                    except ValueError as e:
+                        # Cannot switch to battle phase - units must retreat
+                        message = f"Error: {e}"
+                        if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                            self.curses_input.show_message(message)
+                        else:
+                            print(message)
+                            input("Press Enter to continue...")
+                            self._render()
                 else:
                     # User cancelled - re-render to clear any fallback messages
                     self._render()
@@ -341,14 +351,10 @@ class ConsoleGame:
                                 self._render()
                             return
 
-                        # Clicked on a retreating unit - select it and highlight destinations
+                        # Clicked on a retreating unit - select it
                         self.display.clear_highlights()
                         self.display.set_highlight(row, col, 'selected')
-
-                        # Highlight valid retreat destinations (NEW)
-                        valid_retreat_positions = self.board.get_valid_retreat_positions(row, col)
-                        for dest_row, dest_col in valid_retreat_positions:
-                            self.display.set_highlight(dest_row, dest_col, 'destination')
+                        self.selected_cell = (row, col)
                         return
 
                 # No pending retreats - normal selection logic
@@ -399,11 +405,21 @@ class ConsoleGame:
                         # Clear highlights before executing attack
                         self.display.clear_highlights()
                         # Switch to battle phase and execute attack
-                        self.board.switch_to_battle_phase()
-                        if self.curses_input:
-                            self.curses_input.update_board(self.board)
-                        self._execute_command(command)
-                        return
+                        try:
+                            self.board.switch_to_battle_phase()
+                            if self.curses_input:
+                                self.curses_input.update_board(self.board)
+                            self._execute_command(command)
+                            return
+                        except ValueError as e:
+                            # Cannot switch to battle phase - units must retreat
+                            message = f"Error: {e}"
+                            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                                self.curses_input.show_message(message)
+                            else:
+                                print(message)
+                                input("Press Enter to continue...")
+                            self._render()
 
                 # If not confirmed, clear highlights and re-render
                 self.display.clear_highlights()
@@ -413,8 +429,8 @@ class ConsoleGame:
                 # Have selection - this is destination
                 from_row, from_col = self.selected_cell
 
-                # Check if selected unit must retreat (pending retreat from FEN)
-                if self.board.has_pending_retreat(from_row, from_col):
+                # Check if selected unit must retreat (new 0.1.5 system)
+                if self.board.is_unit_in_retreat(from_row, from_col):
                     # This is a retreat move
                     self.display.clear_highlights()
                     self.display.set_highlight(from_row, from_col, 'selected')
@@ -431,13 +447,6 @@ class ConsoleGame:
                     # Validate command
                     is_valid, error = validate_command(self.board, command)
                     if is_valid:
-                        # Execute retreat move
-                        moved_unit = self.board.get_unit(from_row, from_col)
-                        getattr(moved_unit, 'unit_type', 'Unit') if moved_unit else 'Unit'
-
-                        # Clear retreat flag after successful move
-                        self.board.get_pending_retreats().remove((from_row, from_col))
-
                         # Execute the move
                         self._execute_command(command)
                     else:
@@ -722,11 +731,15 @@ class ConsoleGame:
 
             # Check if all moves used - auto-advance to battle phase
             if self.board.get_moves_this_turn() >= 5:
-                self.board.switch_to_battle_phase()
-                message += "\nAll moves used. Switched to Battle phase."
-                # Update curses input board reference
-                if self.curses_input:
-                    self.curses_input.update_board(self.board)
+                try:
+                    self.board.switch_to_battle_phase()
+                    message += "\nAll moves used. Switched to Battle phase."
+                    # Update curses input board reference
+                    if self.curses_input:
+                        self.curses_input.update_board(self.board)
+                except ValueError as e:
+                    # Cannot switch to battle phase - units must retreat
+                    message += f"\n{e}"
 
             # Display message based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
@@ -766,8 +779,21 @@ class ConsoleGame:
                 self._render()
             return
 
-        # Execute attack
+        # Preview battle before executing
+        from ..combat import preview_combat
+
         try:
+            preview = preview_combat(self.board, target_row, target_col,
+                                 self.board.turn, self._get_opponent())
+
+            # Display battle confirmation dialog
+            if not self._show_battle_confirmation(target_row, target_col, preview):
+                # User cancelled attack
+                self.display.clear_highlights()
+                self._render()
+                return
+
+            # Execute attack
             result = self.board.make_turn_attack(target_row, target_col)
 
             # After attack, recalculate networks for both players
@@ -791,8 +817,16 @@ class ConsoleGame:
             message += f"Defense Power: {result['defense_power']}"
 
             # Auto-advance to next turn after attack
-            self.board.end_turn()
+            captured_units = self.board.end_turn()
             message += f"\n\nTurn ended. Now {self.board.turn}'s turn."
+
+            # Display capture notifications for units with no valid retreat
+            if captured_units:
+                for cap_row, cap_col, cap_unit, cap_reason in captured_units:
+                    cap_coord = self.board.tuple_to_spreadsheet(cap_row, cap_col)
+                    cap_type = getattr(cap_unit, 'unit_type', 'Unit')
+                    message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
+
             # Update curses input board reference
             if self.curses_input:
                 self.curses_input.update_board(self.board)
@@ -815,6 +849,82 @@ class ConsoleGame:
                 input("Press Enter to continue...")
                 self._render()
 
+    def _get_opponent(self) -> str:
+        """Get the opponent player.
+
+        Returns:
+            Opponent player ('NORTH' or 'SOUTH')
+        """
+        return 'SOUTH' if self.board.turn == 'NORTH' else 'NORTH'
+
+    def _show_battle_confirmation(self, target_row: int, target_col: int,
+                               preview: dict) -> bool:
+        """Show battle confirmation dialog with highlights.
+
+        Args:
+            target_row: Target row
+            target_col: Target column
+            preview: Battle preview dictionary from preview_combat()
+
+        Returns:
+            True if user confirms attack, False if cancelled
+        """
+        # Clear any existing highlights
+        self.display.clear_highlights()
+
+        # Highlight target square (same color as defenders since it's being attacked)
+        self.display.set_highlight(target_row, target_col, 'defense')
+
+        # Highlight attacking units
+        for row, col, _unit, _contribution in preview['attack_units']:
+            # Check if this cavalry is charging (using positions list from preview)
+            if (row, col) in preview['charging_cavalry_positions']:
+                self.display.set_highlight(row, col, 'charging')
+            else:
+                self.display.set_highlight(row, col, 'attack')
+
+        # Highlight defending units (excluding target itself)
+        self.board.get_unit(target_row, target_col)
+        for row, col, _unit, _contribution in preview['defense_units']:
+            # Skip the target unit itself (use position comparison, not object identity)
+            if row == target_row and col == target_col:
+                continue
+            # Defending units all get blue highlight (including cavalry)
+            self.display.set_highlight(row, col, 'defense')
+
+        # Re-render with highlights
+        self._render()
+
+        # Build confirmation message
+        message = self._format_battle_confirmation(target_row, target_col, preview)
+
+        # Get user confirmation
+        confirmed = self._confirm(message)
+
+        # Clear highlights after decision
+        self.display.clear_highlights()
+
+        return confirmed
+
+    def _format_battle_confirmation(self, target_row: int, target_col: int,
+                                   preview: dict) -> str:
+        """Format battle confirmation message.
+
+        Args:
+            target_row: Target row
+            target_col: Target column
+            preview: Battle preview dictionary from preview_combat()
+
+        Returns:
+            Formatted confirmation message string
+        """
+        # Single line confirmation
+        message = (
+            f"Attack Power {preview['attack_power']} vs Defense Power "
+            f"{preview['defense_power']}, continue? (y/n)"
+        )
+        return message
+
     def _execute_pass(self, command: Command) -> None:
         """Execute pass command.
 
@@ -826,8 +936,16 @@ class ConsoleGame:
             message = "Attack phase passed."
 
             # Auto-advance turn after pass
-            self.board.end_turn()
+            captured_units = self.board.end_turn()
             message += f"\nTurn ended. Now {self.board.turn}'s turn."
+
+            # Display capture notifications for units with no valid retreat
+            if captured_units:
+                for cap_row, cap_col, cap_unit, cap_reason in captured_units:
+                    cap_coord = self.board.tuple_to_spreadsheet(cap_row, cap_col)
+                    cap_type = getattr(cap_unit, 'unit_type', 'Unit')
+                    message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
+
             # Update curses input board reference
             if self.curses_input:
                 self.curses_input.update_board(self.board)
@@ -857,8 +975,15 @@ class ConsoleGame:
             command: End turn command (unused but for consistency)
         """
         try:
-            self.board.end_turn()
+            captured_units = self.board.end_turn()
             message = f"Turn ended. Now {self.board.turn}'s turn."
+
+            # Display capture notifications for units with no valid retreat
+            if captured_units:
+                for cap_row, cap_col, cap_unit, cap_reason in captured_units:
+                    cap_coord = self.board.tuple_to_spreadsheet(cap_row, cap_col)
+                    cap_type = getattr(cap_unit, 'unit_type', 'Unit')
+                    message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
 
             # Display message based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
@@ -976,8 +1101,12 @@ class ConsoleGame:
 
         try:
             if phase_str == 'battle':
-                self.board.switch_to_battle_phase()
-                message = "Switched to Battle phase"
+                try:
+                    self.board.switch_to_battle_phase()
+                    message = "Switched to Battle phase"
+                except ValueError as e:
+                    # Cannot switch to battle phase - units must retreat
+                    message = f"Error: {e}"
             else:  # movement
                 # Switching back to movement phase resets turn state
                 # This allows undoing battle phase changes if needed

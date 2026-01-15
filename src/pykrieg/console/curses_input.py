@@ -50,8 +50,11 @@ class CursesInput:
         self.COLOR_SELECTED_BG = 5 # Magenta background for selection
         self.COLOR_DEST_BG = 6     # Cyan background for destination
         self.COLOR_ATTACK_BG = 7   # Red background for attack
-        self.COLOR_TERRAIN_DARK = 8   # Dark green for empty terrain outside LOC
-        self.COLOR_TERRAIN_LIGHT = 9  # Light green for empty terrain inside LOC
+        self.COLOR_DEFENSE_BG = 8  # Blue background for defense
+        self.COLOR_BLOCKED_BG = 9   # Gray background for blocked units
+        self.COLOR_CHARGING_BG = 10  # Gold background for charging cavalry
+        self.COLOR_TERRAIN_DARK = 11   # Dark green for empty terrain outside LOC
+        self.COLOR_TERRAIN_LIGHT = 12  # Light green for empty terrain inside LOC
 
     def _init_colors(self, stdscr: "_curses.window") -> None:
         """Initialize curses color pairs.
@@ -72,6 +75,9 @@ class CursesInput:
         curses.init_pair(self.COLOR_SELECTED_BG, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(self.COLOR_DEST_BG, curses.COLOR_BLACK, curses.COLOR_CYAN)
         curses.init_pair(self.COLOR_ATTACK_BG, curses.COLOR_WHITE, curses.COLOR_RED)
+        curses.init_pair(self.COLOR_DEFENSE_BG, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        curses.init_pair(self.COLOR_BLOCKED_BG, curses.COLOR_WHITE, curses.COLOR_WHITE)
+        curses.init_pair(self.COLOR_CHARGING_BG, curses.COLOR_WHITE, curses.COLOR_YELLOW)
 
         # Terrain colors for empty squares
         curses.init_pair(self.COLOR_TERRAIN_DARK, curses.COLOR_GREEN, curses.COLOR_BLACK)

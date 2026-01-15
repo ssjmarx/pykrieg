@@ -127,29 +127,29 @@ class TestMoveValidation:
         board = Board()
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 11, 13) is True
+        assert is_valid_move(board, 10, 12, 11, 13, "NORTH") is True
 
     def test_valid_move_diagonal(self):
         """Test diagonal move is valid."""
         board = Board()
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 9, 11) is True
+        assert is_valid_move(board, 10, 12, 9, 11, "NORTH") is True
 
     def test_valid_move_same_square_invalid(self):
         """Test moving to same square is invalid."""
         board = Board()
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 10, 12) is False
+        assert is_valid_move(board, 10, 12, 10, 12, "NORTH") is False
 
     def test_invalid_move_out_of_bounds(self):
         """Test move out of bounds is invalid."""
         board = Board()
         board.create_and_place_unit(0, 0, "INFANTRY", "NORTH")
 
-        assert is_valid_move(board, 0, 0, -1, 0) is False
-        assert is_valid_move(board, 0, 0, 0, -1) is False
+        assert is_valid_move(board, 0, 0, -1, 0, "NORTH") is False
+        assert is_valid_move(board, 0, 0, 0, -1, "NORTH") is False
 
     def test_invalid_move_beyond_range(self):
         """Test move beyond range is invalid."""
@@ -157,7 +157,7 @@ class TestMoveValidation:
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
 
         # Infantry has range 1, cannot move 2 squares
-        assert is_valid_move(board, 10, 12, 8, 12) is False
+        assert is_valid_move(board, 10, 12, 8, 12, "NORTH") is False
 
     def test_invalid_move_occupied_friendly(self):
         """Test move to occupied square (friendly) is invalid."""
@@ -165,7 +165,7 @@ class TestMoveValidation:
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
         board.create_and_place_unit(11, 13, "CAVALRY", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 11, 13) is False
+        assert is_valid_move(board, 10, 12, 11, 13, "NORTH") is False
 
     def test_invalid_move_occupied_enemy(self):
         """Test move to occupied square (enemy) is invalid."""
@@ -173,30 +173,30 @@ class TestMoveValidation:
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
         board.create_and_place_unit(11, 13, "CAVALRY", "SOUTH")
 
-        assert is_valid_move(board, 10, 12, 11, 13) is False
+        assert is_valid_move(board, 10, 12, 11, 13, "NORTH") is False
 
     def test_invalid_no_unit_at_source(self):
         """Test move from empty square is invalid."""
         board = Board()
 
-        assert is_valid_move(board, 10, 12, 11, 13) is False
+        assert is_valid_move(board, 10, 12, 11, 13, "NORTH") is False
 
     def test_cavalry_range_2_valid(self):
         """Test Cavalry can move 2 squares."""
         board = Board()
         board.create_and_place_unit(10, 12, "CAVALRY", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 8, 12) is True  # Up 2
-        assert is_valid_move(board, 10, 12, 12, 12) is True  # Down 2
-        assert is_valid_move(board, 10, 12, 10, 10) is True  # Left 2
-        assert is_valid_move(board, 10, 12, 10, 14) is True  # Right 2
+        assert is_valid_move(board, 10, 12, 8, 12, "NORTH") is True  # Up 2
+        assert is_valid_move(board, 10, 12, 12, 12, "NORTH") is True  # Down 2
+        assert is_valid_move(board, 10, 12, 10, 10, "NORTH") is True  # Left 2
+        assert is_valid_move(board, 10, 12, 10, 14, "NORTH") is True  # Right 2
 
     def test_arsenal_cannot_move(self):
         """Test Arsenal cannot move."""
         board = Board()
         board.create_and_place_unit(10, 12, "ARSENAL", "NORTH")
 
-        assert is_valid_move(board, 10, 12, 11, 12) is False
+        assert is_valid_move(board, 10, 12, 11, 12, "NORTH") is False
 
 
 class TestMoveExecution:
@@ -533,7 +533,7 @@ class TestErrorHandling:
         """Test is_valid_move returns False for empty source."""
         board = Board()
 
-        assert is_valid_move(board, 10, 12, 11, 13) is False
+        assert is_valid_move(board, 10, 12, 11, 13, "NORTH") is False
 
 
 class TestBoundaryValues:
@@ -619,7 +619,7 @@ class TestAllUnitTypesParametrized:
         board = Board()
         board.create_and_place_unit(10, 12, unit_type, "NORTH")
 
-        assert is_valid_move(board, 10, 12, 10, 12) is False
+        assert is_valid_move(board, 10, 12, 10, 12, "NORTH") is False
 
     @pytest.mark.parametrize("unit_type", [
         "INFANTRY", "CAVALRY", "CANNON", "SWIFT_CANNON", "RELAY", "SWIFT_RELAY"

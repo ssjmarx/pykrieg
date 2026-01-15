@@ -27,8 +27,15 @@ class Board:
 
     TERRITORY_BOUNDARY = constants.TERRITORY_BOUNDARY  # Row 10 is the boundary
 
-    def __init__(self) -> None:
-        """Initialize empty board with territory boundaries."""
+    def __init__(self, enable_adjacency_relay_propagation: bool = True) -> None:
+        """Initialize empty board with territory boundaries.
+
+        Args:
+            enable_adjacency_relay_propagation: When True (default), relays activated
+                by proximity to an online unit propagate their LOC rays. When False,
+                relays only propagate via arsenal rays and other relay rays
+                (original Debord behavior).
+        """
         self._rows = constants.BOARD_ROWS
         self._cols = constants.BOARD_COLS
         # Use Any to handle both None and Unit objects due to circular imports
@@ -65,6 +72,9 @@ class Board:
         ] = set()  # All squares covered by South's network
         self._network_calculated: bool = False  # Flag if calculate_network() was called
         self._network_dirty: bool = True  # Flag for lazy recalculation - network needs update
+
+        # Configuration for network rules
+        self._enable_adjacency_relay_propagation: bool = enable_adjacency_relay_propagation
 
     @property
     def rows(self) -> int:
@@ -525,7 +535,13 @@ class Board:
             True if move is legal, False otherwise
         """
         from .movement import is_valid_move
-        return is_valid_move(self, from_row, from_col, to_row, to_col)
+        unit = self.get_unit(from_row, from_col)
+        if unit is None:
+            return False
+        player = getattr(unit, 'owner', None)
+        if player is None:
+            return False
+        return is_valid_move(self, from_row, from_col, to_row, to_col, player)
 
     def make_move(self, from_row: int, from_col: int,
                   to_row: int, to_col: int) -> object:
@@ -777,7 +793,13 @@ class Board:
 
         # Check move legality
         from .movement import is_valid_move
-        return is_valid_move(self, from_row, from_col, to_row, to_col)
+        unit = self.get_unit(from_row, from_col)
+        if unit is None:
+            return False
+        player = getattr(unit, 'owner', None)
+        if player is None:
+            return False
+        return is_valid_move(self, from_row, from_col, to_row, to_col, player)
 
     def make_turn_move(self, from_row: int, from_col: int,
                        to_row: int, to_col: int) -> object:
@@ -832,6 +854,7 @@ class Board:
         1. It's the battle phase
         2. The current player hasn't attacked yet
         3. There's at least one attacking unit
+        4. No units must retreat (retreat enforcement)
 
         Args:
             target_row: Target row (0-19)
@@ -849,6 +872,10 @@ class Board:
 
         # Check attack limit
         if self._attacks_this_turn >= constants.MAX_ATTACKS_PER_TURN:
+            return False
+
+        # NEW: Check if units must retreat - block attack until retreats resolved
+        if self._units_must_retreat:
             return False
 
         # Check if attacker has units (can_attack will check this)
@@ -926,14 +953,18 @@ class Board:
         """Switch from movement phase to battle phase.
 
         Raises:
-            ValueError: If not in movement phase
+            ValueError: If not in movement phase or units must retreat
         """
         if self._current_phase != constants.PHASE_MOVEMENT:
             raise ValueError("Cannot switch to battle phase: not in movement phase")
 
+        # NEW: Prevent switching to battle phase if units must retreat
+        if self._units_must_retreat:
+            raise ValueError("Cannot switch to battle phase: units must retreat first")
+
         self._current_phase = constants.PHASE_BATTLE
 
-    def resolve_retreats(self) -> None:
+    def resolve_retreats(self) -> List[Tuple[int, int, object, str]]:
         """Resolve pending retreats at the start of a turn.
 
         This method checks for pending retreats and enforces retreat rules:
@@ -941,6 +972,12 @@ class Board:
         2. If valid retreat exists, mark unit as "must retreat" (player must choose destination)
         3. If no valid retreat exists, capture (destroy) the unit
         4. Clear pending retreats after resolution
+
+        Returns:
+            List of tuples (row, col, unit, reason) for captured units:
+            - row, col: Position where unit was captured
+            - unit: The captured unit object
+            - reason: String explaining why unit was captured (e.g., "no valid retreat")
 
         Note:
             - This is called at the start of the defender's turn
@@ -951,6 +988,7 @@ class Board:
             - In 0.2.0, add terrain validation to retreat moves
             - In 0.2.0, check online/offline status for retreat
         """
+        captured_units: List[Tuple[int, int, object, str]] = []
         # Only resolve retreats for current player's units
         retreat_positions = list(self._pending_retreats)
 
@@ -973,8 +1011,9 @@ class Board:
                 # Mark unit as must retreat (player must choose destination)
                 self._units_must_retreat.add((row, col))
             else:
-                # No valid retreat: capture the unit
-                self.execute_capture(row, col)
+                # No valid retreat: capture the unit and record info
+                captured_unit = self.execute_capture(row, col)
+                captured_units.append((row, col, captured_unit, "no valid retreat"))
 
         # Clear pending retreats for current player
         self._pending_retreats = [
@@ -982,7 +1021,9 @@ class Board:
             if pos not in retreat_positions
         ]
 
-    def end_turn(self) -> None:
+        return captured_units
+
+    def end_turn(self) -> List[Tuple[int, int, object, str]]:
         """End current turn and switch to next player.
 
         This method:
@@ -992,6 +1033,9 @@ class Board:
         4. Resets phase to movement
         5. Increments turn number
         6. Resolves any pending retreats for new player
+
+        Returns:
+            List of tuples (row, col, unit, reason) for captured units during retreat resolution
 
         Note:
             - Retreat resolution happens at the start of the new player's turn
@@ -1008,8 +1052,8 @@ class Board:
         self._moved_unit_ids.clear()
         self._attacks_this_turn = 0
 
-        # Resolve retreats for new player
-        self.resolve_retreats()
+        # Resolve retreats for new player and capture any that have no valid retreat
+        return self.resolve_retreats()
 
     def reset_turn_state(self) -> None:
         """Reset turn state without changing turn number or player.
@@ -1354,13 +1398,7 @@ class Board:
                 continue
 
             # Case 3: Enemy unit
-            # Enemy relays/swift relays do NOT block the ray
-            # Mark the square as covered (ray passes through) but don't activate enemy unit
-            if current_type in (constants.UNIT_RELAY, constants.UNIT_SWIFT_RELAY):
-                self._mark_square_covered(y, x, player)
-                continue
-
-            # All other enemy units block the ray
+            # All enemy units block the ray (including relays)
             break
 
         return relay_activated
@@ -1545,31 +1583,65 @@ class Board:
             self.calculate_network(PLAYER_SOUTH)
             self._network_dirty = False
 
+    # Network configuration methods
+
+    def set_adjacency_relay_propagation(self, enable: bool) -> None:
+        """Enable/disable adjacency-based relay propagation (Step 4).
+
+        When enabled (default): Relays activated by proximity to an online unit
+        will propagate their own LOC rays in all 8 directions.
+
+        When disabled: Relays only propagate LOC rays when activated via
+        arsenal rays or other relay rays (original Debord behavior).
+
+        Args:
+            enable: True to enable, False to disable
+        """
+        self._enable_adjacency_relay_propagation = enable
+        # Mark network as dirty so recalculation uses new setting
+        self._network_dirty = True
+
+    def get_adjacency_relay_propagation(self) -> bool:
+        """Check if adjacency-based relay propagation is enabled.
+
+        Returns:
+            True if Step 4 is enabled, False otherwise
+        """
+        return self._enable_adjacency_relay_propagation
+
     # Public API for network queries
 
     def enable_networks(self) -> None:
         """Enable network rules for both players.
 
-        This method activates the Lines of Communication system, after which
-        units must be connected to arsenals through the network to function.
+        This method activates Lines of Communication system, after which
+        units must be connected to arsenals through to network to function.
 
-        Once enabled, the network system enforces:
-        - Units not connected to the network have 0 attack/defense/range (except relays)
-        - Units not connected to the network have 0 movement (except relays/swift relays)
+        Once enabled, network system enforces:
+        - Units not connected to network have 0 attack/defense/range (except relays)
+        - Units not connected to network have 0 movement (except relays/swift relays)
 
         Note: This should be called explicitly when network rules are desired.
         The default behavior is that networks are disabled (all units online).
 
+        The optional Step 4 (adjacency-based relay propagation) is controlled
+        by Board constructor's enable_adjacency_relay_propagation parameter.
+
         Example:
-            >>> board = Board()
+            >>> board = Board()  # Step 4 enabled (default)
             >>> board.create_and_place_unit(5, 10, 'ARSENAL', 'NORTH')
             >>> board.create_and_place_unit(5, 12, 'INFANTRY', 'NORTH')
             >>> # Enable network rules
             >>> board.enable_networks()
+            >>> board = Board(enable_adjacency_relay_propagation=False)  # Step 4 disabled
         """
         self._network_calculated = True
-        self.calculate_network(constants.PLAYER_NORTH)
-        self.calculate_network(constants.PLAYER_SOUTH)
+        self.calculate_network(constants.PLAYER_NORTH,
+                          enable_step4=self._enable_adjacency_relay_propagation)
+        self.calculate_network(constants.PLAYER_SOUTH,
+                          enable_step4=self._enable_adjacency_relay_propagation)
+        # Clear dirty flag after manual network calculation
+        self._network_dirty = False
 
     def is_unit_online(self, row: int, col: int, player: str) -> bool:
         """Check if a square is covered by network for a player.

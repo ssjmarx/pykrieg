@@ -65,8 +65,8 @@ class TestRayPropagation:
         assert not board.is_unit_online(10, 10, PLAYER_NORTH)
         assert not board.is_unit_online(10, 9, PLAYER_NORTH)
 
-    def test_ray_continues_through_enemy_relay(self):
-        """Test that ray continues through enemy relay."""
+    def test_ray_stops_on_enemy_relay(self):
+        """Test that ray stops on enemy relay."""
         board = Board()
 
         # Place arsenal and enemy relay with infantry beyond
@@ -76,9 +76,9 @@ class TestRayPropagation:
 
         board.enable_networks()
 
-        # Ray should continue through enemy relay
-        assert board.is_unit_online(10, 11, PLAYER_NORTH)  # Relay square marked
-        # Infantry beyond should still block
+        # Ray should stop at enemy relay (it blocks like any other enemy unit)
+        assert not board.is_unit_online(10, 11, PLAYER_NORTH)  # Enemy relay blocks
+        # Infantry beyond is also offline
         assert not board.is_unit_online(10, 10, PLAYER_NORTH)
 
     def test_ray_stops_on_mountain(self):

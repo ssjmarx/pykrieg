@@ -10,7 +10,7 @@ Movement uses Chebyshev distance (king moves in chess):
 - Movement range 0: No movement (Arsenals only)
 """
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Set, Tuple
 
 from .board import Board
 
@@ -25,6 +25,7 @@ def generate_moves(board: Board, from_row: int, from_col: int) -> List[Tuple[int
     - Within movement range (Chebyshev distance)
     - Within board boundaries
     - Not occupied by any unit
+    - Path exists through passable squares (enemy units block, friendly units passable)
 
     Terrain and lines of communication are NOT considered (0.2.x feature).
 
@@ -51,6 +52,11 @@ def generate_moves(board: Board, from_row: int, from_col: int) -> List[Tuple[int
     if unit is None:
         raise ValueError(f"No unit at position ({from_row}, {from_col})")
 
+    # Get player making the move
+    player = getattr(unit, 'owner', None)
+    if player is None:
+        raise ValueError(f"Unit at ({from_row}, {from_col}) has no owner")
+
     # Check if unit can move - use getattr to avoid type checking issues
     movement_range = getattr(unit, 'movement', 0)
     if movement_range == 0:
@@ -69,15 +75,15 @@ def generate_moves(board: Board, from_row: int, from_col: int) -> List[Tuple[int
             to_row = from_row + row_offset
             to_col = from_col + col_offset
 
-            # Check if target square is valid
-            if is_valid_move(board, from_row, from_col, to_row, to_col):
+            # Check if target square is valid (with pathfinding)
+            if is_valid_move(board, from_row, from_col, to_row, to_col, player):
                 moves.append((to_row, to_col))
 
     return moves
 
 
 def is_valid_move(board: Board, from_row: int, from_col: int,
-                  to_row: int, to_col: int) -> bool:
+                  to_row: int, to_col: int, player: str) -> bool:
     """Check if a move is valid (pseudo-legal).
 
     A move is pseudo-legal if:
@@ -86,6 +92,7 @@ def is_valid_move(board: Board, from_row: int, from_col: int,
     3. Target square is within movement range (Chebyshev distance)
     4. Target square is not occupied by any unit
     5. Source unit has movement > 0
+    6. Path exists through passable squares (enemy units block path, friendly units are passable)
 
     Args:
         board: The game board
@@ -93,6 +100,7 @@ def is_valid_move(board: Board, from_row: int, from_col: int,
         from_col: Source column (0-24)
         to_row: Target row (0-19)
         to_col: Target column (0-24)
+        player: The player making the move ('NORTH' or 'SOUTH')
 
     Returns:
         True if move is pseudo-legal, False otherwise
@@ -100,9 +108,9 @@ def is_valid_move(board: Board, from_row: int, from_col: int,
     Examples:
         >>> board = Board()
         >>> board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
-        >>> is_valid_move(board, 5, 10, 6, 11)
+        >>> is_valid_move(board, 5, 10, 6, 11, "NORTH")
         True  # Valid diagonal move
-        >>> is_valid_move(board, 5, 10, 5, 10)
+        >>> is_valid_move(board, 5, 10, 5, 10, "NORTH")
         False  # Cannot move to same square
     """
     # Check source has unit
@@ -126,6 +134,11 @@ def is_valid_move(board: Board, from_row: int, from_col: int,
 
     # Check target not occupied
     if board.get_unit(to_row, to_col) is not None:
+        return False
+
+    # Check if path exists through passable squares
+    # Enemy units block path, friendly units are passable
+    if not can_reach_square(board, from_row, from_col, to_row, to_col, player):
         return False
 
     return True
@@ -165,12 +178,18 @@ def execute_move(board: Board, from_row: int, from_col: int,
         >>> board.get_unit(5, 10) is None
         True
     """
-    # Validate move
-    if not is_valid_move(board, from_row, from_col, to_row, to_col):
-        raise ValueError(f"Invalid move from ({from_row}, {from_col}) to ({to_row}, {to_col})")
-
-    # Get unit
+    # Get unit to determine player
     unit = board.get_unit(from_row, from_col)
+    if unit is None:
+        raise ValueError(f"No unit at ({from_row}, {from_col})")
+
+    player = getattr(unit, 'owner', None)
+    if player is None:
+        raise ValueError(f"Unit at ({from_row}, {from_col}) has no owner")
+
+    # Validate move
+    if not is_valid_move(board, from_row, from_col, to_row, to_col, player):
+        raise ValueError(f"Invalid move from ({from_row}, {from_col}) to ({to_row}, {to_col})")
 
     # Move unit
     board.clear_square(from_row, from_col)
@@ -222,3 +241,130 @@ def can_move(unit: object) -> bool:
         False
     """
     return getattr(unit, 'movement', 0) > 0
+
+
+def can_reach_square(board: Board, from_row: int, from_col: int,
+                   to_row: int, to_col: int, player: str) -> bool:
+    """Check if a unit can reach a destination via BFS pathfinding.
+
+    This uses Breadth-First Search to find the shortest path from source
+    to destination, ensuring that:
+    - Path length is within unit's movement range
+    - Only enemy units block the path (friendly units are passable)
+    - Movement uses Chebyshev distance (8 directions, like king in chess)
+    - Cannot move to the same square (no zero-distance moves)
+    - Units with movement range 2+ must stop at first offline square
+      (they cannot move through squares without arsenal communication)
+
+    Args:
+        board: The game board
+        from_row: Source row (0-19)
+        from_col: Source column (0-24)
+        to_row: Destination row (0-19)
+        to_col: Destination column (0-24)
+        player: The player making the move ('NORTH' or 'SOUTH')
+
+    Returns:
+        True if destination is reachable within movement range, False otherwise
+
+    Examples:
+        >>> board = Board()
+        >>> board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+        >>> # Path through empty squares
+        >>> can_reach_square(board, 5, 10, 6, 11, "NORTH")
+        True
+        >>> # Path blocked by enemy unit
+        >>> board.create_and_place_unit(6, 11, "INFANTRY", "SOUTH")
+        >>> can_reach_square(board, 5, 10, 6, 11, "NORTH")
+        False
+    """
+    # Cannot move to the same square
+    if (from_row, from_col) == (to_row, to_col):
+        return False
+
+    # Get unit at source to determine movement range
+    unit = board.get_unit(from_row, from_col)
+    if unit is None:
+        return False
+
+    movement_range = getattr(unit, 'movement', 0)
+    if movement_range == 0:
+        return False
+
+    # BFS to find shortest path
+    from collections import deque
+
+    queue = deque([(from_row, from_col, 0)])  # (row, col, distance)
+    visited: Set[Tuple[int, int]] = {(from_row, from_col)}
+
+    # 8 directions for Chebyshev movement (king moves)
+    directions = [
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, -1),           (0, 1),
+        (1, -1),  (1, 0),  (1, 1)
+    ]
+
+    while queue:
+        row, col, dist = queue.popleft()
+
+        # Check if we reached destination
+        if (row, col) == (to_row, to_col):
+            return True
+
+        # Don't explore beyond movement range
+        if dist >= movement_range:
+            continue
+
+        # Explore all 8 adjacent squares
+        for dr, dc in directions:
+            next_row = row + dr
+            next_col = col + dc
+
+            # Skip if already visited
+            if (next_row, next_col) in visited:
+                continue
+
+            # Skip if outside board
+            if not board.is_valid_square(next_row, next_col):
+                continue
+
+            # Check if square is passable
+            # Passable if: empty OR friendly unit
+            # Blocked if: enemy unit
+            unit_at_square = board.get_unit(next_row, next_col)
+            if unit_at_square is None:
+                # Empty square - passable
+                passable = True
+            else:
+                unit_owner = getattr(unit_at_square, 'owner', None)
+                if unit_owner == player:
+                    # Friendly unit - passable
+                    passable = True
+                else:
+                    # Enemy unit - blocks path
+                    passable = False
+
+            if not passable:
+                continue
+
+            # For units with movement range 2+, check for offline squares
+            # Units can only move TO the first offline square, not THROUGH it
+            if movement_range >= 2:
+                # Check if this square is offline
+                if not board.is_unit_online(next_row, next_col, player):
+                    # This is an offline square
+                    # Can only move to this square if it's the destination
+                    if (next_row, next_col) == (to_row, to_col):
+                        # Destination is offline square - allow it
+                        visited.add((next_row, next_col))
+                        queue.append((next_row, next_col, dist + 1))
+                    # Don't explore beyond this offline square
+                    # Don't add to visited/queue for other purposes
+                    continue
+
+            # Add to visited and queue for normal exploration
+            visited.add((next_row, next_col))
+            queue.append((next_row, next_col, dist + 1))
+
+    # No path found within movement range
+    return False

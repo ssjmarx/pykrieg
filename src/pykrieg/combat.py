@@ -20,7 +20,7 @@ Scope for 0.1.3:
 """
 
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .board import Board
 
@@ -110,6 +110,13 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
     - Each attack vector calculated separately
     - If first cavalry not adjacent, no charge in that direction
     - Gaps break charge stacking chain
+    - Charging cavalry are exempt from range and path blocking checks
+
+    Range and Path Blocking Rules:
+    - Units must be within their attack range to participate
+    - Enemy units block the path to the target
+    - Charging cavalry are exempt from blocking checks
+    - Friendly units do NOT block the path
 
     Note: Effective attack considers online/offline status (0.2.0)
     - Offline units have 0 attack (except relays, which have 0 anyway)
@@ -129,11 +136,7 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, attacker)
 
-        # Check if charge is active for this direction
-        charging = False
-
-        # Build full list of squares in this direction
-        # to check for gaps between units
+        # Build full list of squares in this direction for gap checking
         row_offset, col_offset = direction
         squares_in_line = []
         current_row = target_row + row_offset
@@ -143,53 +146,82 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
             current_row += row_offset
             current_col += col_offset
 
-        for i, (row, col, unit) in enumerate(units):
+        # Step 1: Calculate charge stack FIRST (exclusive calculation)
+        # Find first cavalry adjacent to target
+        charge_stack_indices = []
+        if units:
+            first_unit_row, first_unit_col, first_unit = units[0]
+            first_unit_type = getattr(first_unit, 'unit_type', None)
+
+            if (first_unit_type == 'CAVALRY' and
+                is_adjacent(first_unit_row, first_unit_col, target_row, target_col)):
+                # First unit is adjacent cavalry - start charge stack
+                charge_stack_indices.append(0)
+
+                # Look for consecutive cavalry (up to 4 total)
+                max_charge_stack = 4
+                for i in range(1, min(len(units), max_charge_stack)):
+                    prev_row, prev_col, prev_unit = units[i - 1]
+                    curr_row, curr_col, curr_unit = units[i]
+
+                    # Check if units are consecutive (no gap)
+                    prev_index = squares_in_line.index((prev_row, prev_col))
+                    curr_index = squares_in_line.index((curr_row, curr_col))
+
+                    if curr_index - prev_index > 1:
+                        # Gap found - charge stack ends
+                        break
+
+                    # Check for enemy blocker
+                    if is_path_blocked_by_enemy(
+                        board, curr_row, curr_col, target_row, target_col, attacker
+                    ):
+                        # Enemy blocker found - charge stack ends
+                        break
+
+                    curr_unit_type = getattr(curr_unit, 'unit_type', None)
+                    if curr_unit_type == 'CAVALRY':
+                        charge_stack_indices.append(i)
+                    else:
+                        # Non-cavalry unit - charge stack ends
+                        break
+
+        # Step 2: Process charge stack (exempt from range and path blocking)
+        for idx in charge_stack_indices:
+            row, col, unit = units[idx]
+
             # Use effective attack (0.2.0) to account for online/offline status
             if hasattr(unit, 'get_effective_attack'):
                 base_attack = unit.get_effective_attack(board)
             else:
                 base_attack = getattr(unit, 'attack', 0)
 
-            unit_type = getattr(unit, 'unit_type', None)
+            # Charge stack cavalry get +3 bonus
+            total_attack += base_attack + 3
 
-            # Check for Cavalry charge bonus
-            if unit_type == 'CAVALRY':
-                # First cavalry in direction
-                if i == 0:
-                    # Check if adjacent (orthogonal/diagonal)
-                    if is_adjacent(row, col, target_row, target_col):
-                        charging = True  # Trigger charge
-                    else:
-                        # First cavalry not adjacent, no charge in this direction
-                        # Continue but no bonus for this or subsequent units
-                        total_attack += base_attack
-                        continue
-                # Subsequent cavalry - check if charge is still active
-                elif not charging:
-                    total_attack += base_attack
-                    continue
-                else:
-                    # Charge is active, check for gap between previous unit and this one
-                    prev_unit = units[i - 1]
-                    prev_row, prev_col = prev_unit[0], prev_unit[1]
+        # Step 3: Process remaining units with normal rules (after charge stack)
+        start_normal_index = len(charge_stack_indices)
+        for i in range(start_normal_index, len(units)):
+            row, col, unit = units[i]
 
-                    # Check if there's a gap between prev_unit and current unit
-                    # by checking squares_in_line
-                    prev_index = squares_in_line.index((prev_row, prev_col))
-                    current_index = squares_in_line.index((row, col))
-
-                    # If units are not consecutive, there's a gap
-                    if current_index - prev_index > 1:
-                        # Gap found, breaks charge stack
-                        charging = False
-                        total_attack += base_attack
-                        continue
-
-                # Apply bonus if charging (either adjacent or stacking)
-                total_attack += base_attack + 3
+            # Use effective attack (0.2.0) to account for online/offline status
+            if hasattr(unit, 'get_effective_attack'):
+                base_attack = unit.get_effective_attack(board)
             else:
-                # Non-cavalry units contribute normally
-                total_attack += base_attack
+                base_attack = getattr(unit, 'attack', 0)
+
+            getattr(unit, 'unit_type', None)
+
+            # Check range
+            if not is_unit_in_range(board, row, col, target_row, target_col):
+                continue  # Out of range
+
+            # Check path blocking
+            if is_path_blocked_by_enemy(board, row, col, target_row, target_col, attacker):
+                continue  # Path blocked
+
+            # Add attack power
+            total_attack += base_attack
 
     return total_attack
 
@@ -200,6 +232,12 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
 
     Defense power is sum of effective Defense stats of all defender's units
     in direct lines supporting the target, including the unit at the target itself.
+
+    Range and Path Blocking Rules:
+    - The unit at the target square always participates (being attacked)
+    - Supporting units must be within their range to participate
+    - Enemy units block the path to the target for supporting units
+    - Friendly units do NOT block the path
 
     Note: Effective defense considers online/offline status (0.2.0)
     - Offline units have 0 defense (except relays, which always have defense)
@@ -217,6 +255,7 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
     total_defense = 0
 
     # First, check if there's a unit at the target square that belongs to defender
+    # The target unit always participates regardless of range or blocking
     target_unit = board.get_unit(target_row, target_col)
     if target_unit is not None and getattr(target_unit, 'owner', None) == defender:
         # Use effective defense (0.2.0) to account for online/offline status
@@ -226,10 +265,19 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
             total_defense += getattr(target_unit, 'defense', 0)
 
     # Then add defense from units in all 8 directions supporting the target
+    # Supporting units must be in range and have clear path
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, defender)
 
-        for _row, _col, unit in units:
+        for row, col, unit in units:
+            # Check range for supporting units
+            if not is_unit_in_range(board, row, col, target_row, target_col):
+                continue  # Out of range
+
+            # Check path blocking for supporting units
+            if is_path_blocked_by_enemy(board, row, col, target_row, target_col, defender):
+                continue  # Path blocked by enemy
+
             # Use effective defense (0.2.0) to account for online/offline status
             if hasattr(unit, 'get_effective_defense'):
                 total_defense += unit.get_effective_defense(board)
@@ -237,6 +285,25 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
                 total_defense += getattr(unit, 'defense', 0)
 
     return total_defense
+
+
+def get_distance(row1: int, col1: int, row2: int, col2: int) -> int:
+    """Calculate Chebyshev distance between two squares.
+
+    Chebyshev distance is the maximum of the absolute differences
+    of row and column coordinates. This is appropriate for
+    8-directional movement (including diagonals).
+
+    Args:
+        row1: First square row
+        col1: First square column
+        row2: Second square row
+        col2: Second square column
+
+    Returns:
+        Distance in squares
+    """
+    return max(abs(row1 - row2), abs(col1 - col2))
 
 
 def is_adjacent(row1: int, col1: int, row2: int, col2: int) -> bool:
@@ -253,8 +320,157 @@ def is_adjacent(row1: int, col1: int, row2: int, col2: int) -> bool:
     Returns:
         True if adjacent, False otherwise
     """
-    distance = max(abs(row1 - row2), abs(col1 - col2))
+    distance = get_distance(row1, col1, row2, col2)
     return distance == 1
+
+
+def is_unit_in_range(board: Board, unit_row: int, unit_col: int,
+                    target_row: int, target_col: int) -> bool:
+    """Check if a unit is within range of a target square.
+
+    Args:
+        board: The game board
+        unit_row: Unit row (0-19)
+        unit_col: Unit column (0-24)
+        target_row: Target row (0-19)
+        target_col: Target column (0-24)
+
+    Returns:
+        True if unit is within range, False otherwise
+    """
+    unit = board.get_unit(unit_row, unit_col)
+    if unit is None:
+        return False
+
+    # Get unit range
+    unit_range: Optional[int] = None
+    if hasattr(unit, 'get_effective_range'):
+        unit_range = unit.get_effective_range(board)
+    else:
+        unit_range = getattr(unit, 'range', None)
+
+    # Structures with range=None cannot participate in attacks
+    if unit_range is None:
+        return False
+
+    # Check if within range (including 0 range units)
+    distance = get_distance(unit_row, unit_col, target_row, target_col)
+    return distance <= unit_range
+
+
+def is_path_blocked_by_enemy(board: Board, unit_row: int, unit_col: int,
+                            target_row: int, target_col: int, owner: str) -> bool:
+    """Check if the path from unit to target is blocked by an enemy unit.
+
+    This checks all squares along the direct line between unit and target
+    (excluding the start and end squares) for enemy units.
+
+    Args:
+        board: The game board
+        unit_row: Unit row (0-19)
+        unit_col: Unit column (0-24)
+        target_row: Target row (0-19)
+        target_col: Target column (0-24)
+        owner: 'NORTH' or 'SOUTH' - owner of the unit checking path
+
+    Returns:
+        True if path is blocked by an enemy unit, False otherwise
+    """
+    # Calculate direction from unit to target
+    row_diff = target_row - unit_row
+    col_diff = target_col - unit_col
+
+    # If same position, not blocked
+    if row_diff == 0 and col_diff == 0:
+        return False
+
+    # Normalize direction to -1, 0, or 1
+    if row_diff != 0:
+        row_step = 1 if row_diff > 0 else -1
+    else:
+        row_step = 0
+
+    if col_diff != 0:
+        col_step = 1 if col_diff > 0 else -1
+    else:
+        col_step = 0
+
+    # Walk from unit towards target, stopping before reaching target
+    current_row = unit_row + row_step
+    current_col = unit_col + col_step
+
+    while (current_row != target_row or current_col != target_col):
+        if not board.is_valid_square(current_row, current_col):
+            # Should not happen if units are on valid squares
+            break
+
+        unit_in_path = board.get_unit(current_row, current_col)
+        if unit_in_path is not None:
+            unit_owner = getattr(unit_in_path, 'owner', None)
+            # Check if this is an enemy unit
+            if unit_owner is not None and unit_owner != owner:
+                return True  # Path blocked by enemy
+
+        current_row += row_step
+        current_col += col_step
+
+    return False  # Path clear
+
+
+def get_eligible_line_units(board: Board, target_row: int, target_col: int,
+                           direction: Tuple[int, int], owner: str,
+                           is_attack: bool = False,
+                           charging_cavalry_exempt: bool = False) -> List[Tuple[int, int, object]]:
+    """Get eligible units of a given owner in a specific direction from target.
+
+    This function filters units based on range and path blocking rules.
+
+    Args:
+        board: The game board
+        target_row: Target row (0-19)
+        target_col: Target column (0-24)
+        direction: (row_offset, col_offset) tuple
+        owner: 'NORTH' or 'SOUTH' - units to collect
+        is_attack: True if checking attacking units, False for defending units
+        charging_cavalry_exempt: If True, cavalry in charge stack exempt from blocking/range
+
+    Returns:
+        List of (row, col, unit) tuples for eligible units in the line
+    """
+    # Get all units in the line
+    all_units = get_line_units(board, target_row, target_col, direction, owner)
+
+    eligible_units = []
+
+    for row, col, unit in all_units:
+        unit_type = getattr(unit, 'unit_type', None)
+
+        # Check if this is a cavalry in charge stack (exempt from checks)
+        is_charging_cavalry = False
+        if charging_cavalry_exempt and unit_type == 'CAVALRY':
+            # Check if adjacent to target (starts charge)
+            if is_adjacent(row, col, target_row, target_col):
+                is_charging_cavalry = True
+
+        # For attacking cavalry in charge stack, exempt from range and blocking checks
+        if is_attack and is_charging_cavalry:
+            eligible_units.append((row, col, unit))
+            continue
+
+        # Check range
+        if not is_unit_in_range(board, row, col, target_row, target_col):
+            # Out of range, skip
+            continue
+
+        # Check path blocking
+        if is_path_blocked_by_enemy(board, row, col, target_row, target_col, owner):
+            # Path blocked by enemy, skip
+            continue
+
+        # Unit is eligible
+        eligible_units.append((row, col, unit))
+
+    return eligible_units
 
 
 def resolve_combat(attack_power: int, defense_power: int) -> CombatOutcome:
@@ -293,7 +509,7 @@ def calculate_combat(board: Board, target_row: int, target_col: int,
         board: The game board
         target_row: Target row (0-19)
         target_col: Target column (0-24)
-        attacker: 'NORTH' or 'SOUTH' - player making attack
+        attacker: 'NORTH' or 'SOUTH' - player making of attack
         defender: 'NORTH' or 'SOUTH' - player being attacked
 
     Returns:
@@ -327,6 +543,219 @@ def calculate_combat(board: Board, target_row: int, target_col: int,
         'outcome': outcome,
         'attack_units': attack_units,
         'defense_units': defense_units,
+    }
+
+
+def preview_combat(board: Board, target_row: int, target_col: int,
+                  attacker: str, defender: str) -> Dict[str, object]:
+    """Preview a combat scenario with detailed unit information.
+
+    This function calculates battle details without executing the attack,
+    providing information for confirmation dialogs and battle planning.
+
+    Returns detailed information including:
+    - Attack and defense power
+    - Combat outcome
+    - List of participating units with their contributions
+    - Count of charging cavalry
+    - List of blocked units with reasons
+
+    Args:
+        board: The game board
+        target_row: Target row (0-19)
+        target_col: Target column (0-24)
+        attacker: 'NORTH' or 'SOUTH' - player making of attack
+        defender: 'NORTH' or 'SOUTH' - player being attacked
+
+    Returns:
+        Dictionary with detailed combat results:
+        {
+            'attack_power': int,
+            'defense_power': int,
+            'outcome': CombatOutcome,
+            'attack_units': List[Tuple[int, int, object, int]],  # (row, col, unit, contribution)
+            'defense_units': List[Tuple[int, int, object, int]],  # (row, col, unit, contribution)
+            'charging_cavalry_count': int,
+            'blocked_attack_units': List[Tuple[int, int, object, str]],  # (row, col, unit, reason)
+            'blocked_defense_units': List[Tuple[int, int, object, str]],  # (row, col, unit, reason)
+        }
+    """
+    # Calculate powers
+    attack_power = calculate_attack_power(board, target_row, target_col, attacker)
+    defense_power = calculate_defense_power(board, target_row, target_col, defender)
+
+    # Resolve combat
+    outcome = resolve_combat(attack_power, defense_power)
+
+    # Collect detailed unit information
+    attack_units = []
+    defense_units = []
+    blocked_attack_units = []
+    blocked_defense_units = []
+    charging_cavalry_count = 0
+
+    # Process attack units
+    for direction in get_directions():
+        units = get_line_units(board, target_row, target_col, direction, attacker)
+
+        # Track charging state for this direction
+        charging = False
+
+        # Build squares list for gap checking
+        row_offset, col_offset = direction
+        squares_in_line = []
+        current_row = target_row + row_offset
+        current_col = target_col + col_offset
+        while board.is_valid_square(current_row, current_col):
+            squares_in_line.append((current_row, current_col))
+            current_row += row_offset
+            current_col += col_offset
+
+        for i, (row, col, unit) in enumerate(units):
+            unit_type = getattr(unit, 'unit_type', None)
+
+            # Check if unit is eligible to participate
+            is_eligible = True
+            contribution = 0
+
+            # Calculate contribution
+            if hasattr(unit, 'get_effective_attack'):
+                base_attack = unit.get_effective_attack(board)
+            else:
+                base_attack = getattr(unit, 'attack', 0)
+
+            # Check for cavalry charge
+            if unit_type == 'CAVALRY':
+                if i == 0:
+                    if is_adjacent(row, col, target_row, target_col):
+                        charging = True
+                        contribution = base_attack + 3
+                        charging_cavalry_count += 1
+                    else:
+                        # First cavalry not adjacent, check eligibility normally
+                        if not is_unit_in_range(board, row, col, target_row, target_col):
+                            is_eligible = False
+                            blocked_attack_units.append((row, col, unit, "Out of range"))
+                        elif is_path_blocked_by_enemy(
+                            board, row, col, target_row, target_col, attacker
+                        ):
+                            is_eligible = False
+                            blocked_attack_units.append((row, col, unit, "Path blocked"))
+                        else:
+                            contribution = base_attack
+                elif not charging:
+                    # Check eligibility normally
+                    if not is_unit_in_range(board, row, col, target_row, target_col):
+                        is_eligible = False
+                        blocked_attack_units.append((row, col, unit, "Out of range"))
+                    elif is_path_blocked_by_enemy(
+                        board, row, col, target_row, target_col, attacker
+                    ):
+                        is_eligible = False
+                        blocked_attack_units.append((row, col, unit, "Path blocked"))
+                    else:
+                        contribution = base_attack
+                else:
+                    # Check for gap
+                    prev_unit = units[i - 1]
+                    prev_row, prev_col = prev_unit[0], prev_unit[1]
+                    prev_index = squares_in_line.index((prev_row, prev_col))
+                    current_index = squares_in_line.index((row, col))
+
+                    if current_index - prev_index > 1:
+                        # Gap breaks charge
+                        charging = False
+                        if not is_unit_in_range(board, row, col, target_row, target_col):
+                            is_eligible = False
+                            blocked_attack_units.append((row, col, unit, "Out of range"))
+                        elif is_path_blocked_by_enemy(
+                            board, row, col, target_row, target_col, attacker
+                        ):
+                            is_eligible = False
+                            blocked_attack_units.append((row, col, unit, "Path blocked"))
+                        else:
+                            contribution = base_attack
+                    else:
+                        # Continue charge stack
+                        contribution = base_attack + 3
+                        charging_cavalry_count += 1
+            else:
+                # Non-cavalry units
+                if not is_unit_in_range(board, row, col, target_row, target_col):
+                    is_eligible = False
+                    blocked_attack_units.append((row, col, unit, "Out of range"))
+                elif is_path_blocked_by_enemy(board, row, col, target_row, target_col, attacker):
+                    is_eligible = False
+                    blocked_attack_units.append((row, col, unit, "Path blocked"))
+                else:
+                    contribution = base_attack
+
+            if is_eligible:
+                attack_units.append((row, col, unit, contribution))
+
+    # Process defense units
+    # First, check target unit (always participates)
+    target_unit = board.get_unit(target_row, target_col)
+    if target_unit is not None and getattr(target_unit, 'owner', None) == defender:
+        if hasattr(target_unit, 'get_effective_defense'):
+            defense_units.append((target_row, target_col, target_unit,
+                               target_unit.get_effective_defense(board)))
+        else:
+            defense_units.append((target_row, target_col, target_unit,
+                               getattr(target_unit, 'defense', 0)))
+
+    # Then process supporting units
+    for direction in get_directions():
+        units = get_line_units(board, target_row, target_col, direction, defender)
+
+        for row, col, unit in units:
+            # Check range and path blocking
+            if not is_unit_in_range(board, row, col, target_row, target_col):
+                blocked_defense_units.append((row, col, unit, "Out of range"))
+                continue
+
+            if is_path_blocked_by_enemy(board, row, col, target_row, target_col, defender):
+                blocked_defense_units.append((row, col, unit, "Path blocked"))
+                continue
+
+            # Unit is eligible
+            if hasattr(unit, 'get_effective_defense'):
+                defense_units.append((row, col, unit, unit.get_effective_defense(board)))
+            else:
+                defense_units.append((row, col, unit, getattr(unit, 'defense', 0)))
+
+    # Collect charging cavalry positions for display highlighting
+    charging_cavalry_positions = []
+    for row, col, unit, contribution in attack_units:
+        unit_type = getattr(unit, 'unit_type', None)
+        if unit_type == 'CAVALRY':
+            # Check if this cavalry is charging (has +3 bonus)
+            base_attack = (
+                unit.get_effective_attack(board)
+                if hasattr(unit, 'get_effective_attack')
+                else getattr(unit, 'attack', 0)
+            )
+            if contribution > base_attack:  # Has +3 bonus
+                charging_cavalry_positions.append((row, col))
+
+    # Collect defending cavalry positions for display highlighting
+    defending_cavalry_positions = []
+    for row, col, unit, _contribution in defense_units:
+        unit_type = getattr(unit, 'unit_type', None)
+        if unit_type == 'CAVALRY':
+            defending_cavalry_positions.append((row, col))
+
+    return {
+        'attack_power': attack_power,
+        'defense_power': defense_power,
+        'outcome': outcome,
+        'attack_units': attack_units,
+        'defense_units': defense_units,
+        'charging_cavalry_count': charging_cavalry_count,
+        'charging_cavalry_positions': charging_cavalry_positions,
+        'defending_cavalry_positions': defending_cavalry_positions,
+        'blocked_attack_units': blocked_attack_units,
+        'blocked_defense_units': blocked_defense_units,
     }
 
 
@@ -374,13 +803,13 @@ def can_attack(board: Board, target_row: int, target_col: int,
         board: The game board
         target_row: Target row (0-19)
         target_col: Target column (0-24)
-        attacker: 'NORTH' or 'SOUTH' - player making attack
+        attacker: 'NORTH' or 'SOUTH' - player making of attack
 
     Returns:
         True if attacker has units in line with target, False otherwise
 
     Note:
-        Range validation NOT checked in 0.1.3 (added in 0.2.0)
+        Range validation NOT checked in 0.1.3 (added in 0.2.0).
     """
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, attacker)
