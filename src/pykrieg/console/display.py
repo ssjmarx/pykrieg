@@ -71,6 +71,8 @@ class BoardDisplay:
             self.COLOR_SELECTED_BG = 5 # Magenta background for selection
             self.COLOR_DEST_BG = 6     # Cyan background for destination
             self.COLOR_ATTACK_BG = 7   # Red background for attack
+            self.COLOR_TERRAIN_DARK = 8   # Dark green for empty terrain outside LOC
+            self.COLOR_TERRAIN_LIGHT = 9  # Light green for empty terrain inside LOC
 
     def render(self, board: Board, stdscr: Optional["_curses.window"] = None) -> Optional[str]:
         """Render the complete board display.
@@ -162,8 +164,10 @@ class BoardDisplay:
                 # Render with background color
                 self._render_curses_cell_highlight(stdscr, x_pos, y_pos, unit, highlight, board)
             elif unit is None:
-                # Empty cell (terrain)
-                stdscr.addstr(y_pos, x_pos, "_", curses.color_pair(self.COLOR_GRAY))
+                # Empty cell (terrain) - color based on LOC status
+                in_loc = board.is_unit_online(row, col, board.turn)
+                color = self.COLOR_TERRAIN_LIGHT if in_loc else self.COLOR_TERRAIN_DARK
+                stdscr.addstr(y_pos, x_pos, "·", curses.color_pair(color))
             else:
                 # Unit with player color
                 owner = getattr(unit, 'owner', None)
@@ -226,7 +230,7 @@ class BoardDisplay:
 
         # Get cell content
         if unit is None:
-            text = "_"
+            text = "·"
         elif board:
             # Check if unit is online (for curses mode) using board's method
             owner = getattr(unit, 'owner', None)

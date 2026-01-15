@@ -50,6 +50,8 @@ class CursesInput:
         self.COLOR_SELECTED_BG = 5 # Magenta background for selection
         self.COLOR_DEST_BG = 6     # Cyan background for destination
         self.COLOR_ATTACK_BG = 7   # Red background for attack
+        self.COLOR_TERRAIN_DARK = 8   # Dark green for empty terrain outside LOC
+        self.COLOR_TERRAIN_LIGHT = 9  # Light green for empty terrain inside LOC
 
     def _init_colors(self, stdscr: "_curses.window") -> None:
         """Initialize curses color pairs.
@@ -70,6 +72,10 @@ class CursesInput:
         curses.init_pair(self.COLOR_SELECTED_BG, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
         curses.init_pair(self.COLOR_DEST_BG, curses.COLOR_BLACK, curses.COLOR_CYAN)
         curses.init_pair(self.COLOR_ATTACK_BG, curses.COLOR_WHITE, curses.COLOR_RED)
+
+        # Terrain colors for empty squares
+        curses.init_pair(self.COLOR_TERRAIN_DARK, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_TERRAIN_LIGHT, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
     def get_input(self, prompt: str) -> Optional[str]:
         """Get input using curses with mouse support.
@@ -146,31 +152,7 @@ class CursesInput:
         Returns:
             User input string
         """
-        # Check terminal size
-        max_y, max_x = stdscr.getmaxyx()
-
-        # Calculate required lines based on prompt length with optimized display
-        # Optimized: game state (2) + board (22) + prompt lines + buffer
-        prompt_lines = len(prompt.split('\n'))
-        min_required_y = 2 + 22 + prompt_lines + 3  # Game state + board + prompt + buffer
-
-        if max_y < min_required_y:
-            msg = f"Terminal too small: {max_y}x{max_x} (need at least {min_required_y} rows)"
-            logger.error(msg)
-            # Show error and exit curses
-            stdscr.clear()
-            msg = f"Terminal too small: {max_y}x{max_x}"
-            stdscr.addstr(0, 0, msg, curses.color_pair(self.COLOR_GRAY))
-            msg = f"Need at least {min_required_y} rows for this prompt"
-            stdscr.addstr(1, 0, msg, curses.color_pair(self.COLOR_GRAY))
-            msg = "Please resize your terminal or use compatibility mode"
-            stdscr.addstr(2, 0, msg, curses.color_pair(self.COLOR_GRAY))
-            stdscr.addstr(4, 0, "Press Enter to continue...", curses.color_pair(self.COLOR_GRAY))
-            stdscr.refresh()
-            stdscr.getch()
-            return None
-
-        # Initialize colors
+        # Initialize colors first (this ensures curses is fully set up)
         self._init_colors(stdscr)
 
         # Initialize curses

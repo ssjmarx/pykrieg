@@ -200,6 +200,17 @@ class ConsoleGame:
         if user_input is None:
             return
 
+        # Handle fallback to compatibility mode (terminal too small)
+        if user_input and user_input.startswith("__FALLBACK_TO_COMPAT__"):
+            # Switch to compatibility mode permanently
+            self.display_mode = DisplayMode.COMPATIBILITY
+            self.display = BoardDisplay(self.display_mode)
+            self.curses_input = None
+            # Extract actual input
+            user_input = user_input.replace("__FALLBACK_TO_COMPAT__", "")
+            # Re-render in compatibility mode
+            self._render()
+
         # Handle ESC key
         if user_input == "ESC":
             self.selected_cell = None
