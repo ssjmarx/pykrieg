@@ -23,8 +23,9 @@ The game is played on a grid of 500 squares (20 x 25). The board is divided into
 Terrain Rules: 
 
      Mountains: Impassable. They block movement, attacks, and Lines of Communication.
-     Mountain Passes: Traversable. They do not block Lines of Communication. They provide a +2 Defense bonus to Infantry and Cannons.
-     Fortresses: Traversable. They do not block Lines of Communication. They are neutral (any unit can occupy them). They provide a +4 Defense bonus to Infantry and Cannons. Fortresses cannot be destroyed.
+     Mountain Passes: Traversable. They do not block Lines of Communication. They provide a +2 Defense bonus to the occupyinng unit.
+     Fortresses: Traversable. They do not block Lines of Communication. They are neutral (any unit can occupy them). They provide a +4 Defense bonus to the occupying unit. Fortresses cannot be destroyed.
+          Terrain bonuses apply only when the unit occupying the terrain is the target of the attack. If a unit on a Fortress or Pass is supporting the defense of another unit, it uses its base Defense stat and does not apply the terrain bonus.
      
 
 3. Lines of Communication (The Network) 
@@ -53,7 +54,7 @@ Each player starts with the same force. All stats are listed as Attack / Defense
 Headquarters 
 
      Arsenal: Immobile. No Defense. Radiates communication.
-         Special Rule: An enemy destroys your Arsenal simply by moving onto it (if empty). This counts as the attack for that turn. Relays cannot destroy Arsenals as they have 0 Attack.
+         Special Rule: An enemy destroys your Arsenal simply by moving onto it (if empty). This counts as the attack for that turn.
         
     Communication Units 
 
@@ -120,11 +121,11 @@ Cavalry Charge:
 7. Special Rules & Restrictions 
 
      Occupation: Only one unit may occupy a square at a time (Arsenals, Fortresses, and Passes included).
-     Relay Attacks: Relays have 0 Attack. They cannot attack or destroy Arsenals.
      Cavalry Restrictions:
          Cavalry cannot charge if the target is in a Fortress or Mountain Pass.
          Cavalry cannot charge if they are currently inside a Fortress.
          Cavalry can charge if they are inside a Mountain Pass.
+         A charge line cannot pass through a Cavalry unit occupying a Fortress (as that unit cannot charge), effectively breaking the formation. A charge line may pass through a Cavalry unit occupying a Mountain Pass.
          
      
 8. Summary of Victory 
