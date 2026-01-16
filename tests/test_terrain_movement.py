@@ -1,6 +1,5 @@
 """Tests for terrain movement restrictions."""
 
-import pytest
 
 from pykrieg.board import Board
 from pykrieg.constants import PLAYER_NORTH, PLAYER_SOUTH
@@ -152,7 +151,7 @@ class TestComplexTerrainPaths:
         board.set_terrain(5, 9, "MOUNTAIN")
         board.set_terrain(4, 9, "MOUNTAIN")
         board.set_terrain(6, 9, "MOUNTAIN")
-        
+
         # Pass at (5, 9)
         board.set_terrain(5, 9, "MOUNTAIN_PASS")
 

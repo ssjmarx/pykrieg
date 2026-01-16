@@ -273,7 +273,8 @@ class CursesInput:
 
         # Render "Press Enter to continue" below message
         prompt_y = message_y + len(message_lines)
-        stdscr.addstr(prompt_y, 0, "Press Enter to continue...", curses.color_pair(self.display.COLOR_GRAY))
+        stdscr.addstr(prompt_y, 0, "Press Enter to continue...",
+                      curses.color_pair(self.display.COLOR_GRAY))
 
         # Refresh
         stdscr.refresh()

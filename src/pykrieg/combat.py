@@ -20,7 +20,7 @@ Scope for 0.1.3:
 """
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from .board import Board
 
@@ -307,7 +307,7 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
             # Skip target unit (already counted above)
             if target_unit_processed and (row, col) == (target_row, target_col):
                 continue
-            
+
             # Check range for supporting units
             if not is_unit_in_range(board, row, col, target_row, target_col):
                 continue  # Out of range
@@ -752,7 +752,7 @@ def preview_combat(board: Board, target_row: int, target_col: int,
             # Skip target unit (already counted above)
             if target_unit_processed and (row, col) == (target_row, target_col):
                 continue
-            
+
             # Check range and path blocking
             if not is_unit_in_range(board, row, col, target_row, target_col):
                 blocked_defense_units.append((row, col, unit, "Out of range"))

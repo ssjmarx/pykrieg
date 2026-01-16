@@ -93,18 +93,18 @@ def detect_best_mode() -> str:
         curses.setupterm()
         if curses.tigetnum('colors') < 8:
             return 'compatibility'
-        
+
         # Check terminal size
         # Initialize curses to get terminal size
         stdscr = curses.initscr()
         try:
             height, width = stdscr.getmaxyx()
             curses.endwin()
-            
+
             # Minimum required: 30 rows (board 20 + headers + UI)
             if height < 30:
                 return 'compatibility'
-            
+
             # All checks passed - use curses mode
             return 'curses'
         except Exception:

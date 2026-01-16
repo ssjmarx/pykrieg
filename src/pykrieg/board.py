@@ -53,7 +53,8 @@ class Board:
         # New for 0.1.4: Per-turn tracking
         self._moved_units: Set[Tuple[int, int]] = set()  # Positions units moved FROM this turn
         self._moved_unit_ids: Set[int] = set()  # IDs of units that moved this turn
-        self._moves_made: List[Tuple[int, int, int, int]] = []  # Complete moves: [(from_row, from_col, to_row, to_col), ...]
+        # Complete moves: [(from_row, from_col, to_row, to_col), ...]
+        self._moves_made: List[Tuple[int, int, int, int]] = []
         self._attacks_this_turn: int = 0  # Attacks made this turn
         self._attack_target: Optional[Tuple[int, int]] = None  # Target square attacked this turn
 

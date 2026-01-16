@@ -75,7 +75,7 @@ class Fen:
             for col in range(board.cols):
                 piece = board.get_unit(row, col)
                 terrain = board.get_terrain(row, col)
-                
+
                 if terrain == 'MOUNTAIN':
                     # Mountain: always empty, represented as 'm'
                     row_fen.append('m')
@@ -91,7 +91,7 @@ class Fen:
                         else:
                             unit_type = piece.get('type') if isinstance(piece, dict) else None
                             owner = piece.get('owner') if isinstance(piece, dict) else None
-                        
+
                         if unit_type is None:
                             raise ValueError("Piece has no unit_type attribute")
                         symbol = Fen.PIECE_SYMBOLS[unit_type]
@@ -110,7 +110,7 @@ class Fen:
                         else:
                             unit_type = piece.get('type') if isinstance(piece, dict) else None
                             owner = piece.get('owner') if isinstance(piece, dict) else None
-                        
+
                         if unit_type is None:
                             raise ValueError("Piece has no unit_type attribute")
                         symbol = Fen.PIECE_SYMBOLS[unit_type]
@@ -118,7 +118,8 @@ class Fen:
                             symbol = symbol.lower()
                         row_fen.append(f'[{symbol}]')
                 elif terrain == 'ARSENAL':
-                    # Arsenal terrain: 'A' (North), 'a' (South), 'A{I}' (North with unit), 'a{i}' (South with unit)
+                    # Arsenal terrain: 'A' (North), 'a' (South), 'A{I}'
+                    # (North with unit), 'a{i}' (South with unit)
                     owner = board.get_arsenal_owner(row, col)
                     if piece is None:
                         # Empty arsenal - encode owner via case
@@ -132,7 +133,7 @@ class Fen:
                         else:
                             unit_type = piece.get('type') if isinstance(piece, dict) else None
                             piece_owner = piece.get('owner') if isinstance(piece, dict) else None
-                        
+
                         if unit_type is None:
                             raise ValueError("Piece has no unit_type attribute")
                         symbol = Fen.PIECE_SYMBOLS[unit_type]
@@ -168,7 +169,7 @@ class Fen:
         turn_char = 'N' if board.turn == constants.PLAYER_NORTH else 'S'
         phase = board.current_phase
         turn_number = str(board.turn_number)
-        
+
         # Build actions based on current phase (KFEN spec)
         if phase == constants.PHASE_MOVEMENT:
             # Movement phase: [(from,to),(from,to),...] from _moves_made
@@ -177,13 +178,14 @@ class Fen:
                 from_coord = board.tuple_to_spreadsheet(from_row, from_col)
                 to_coord = board.tuple_to_spreadsheet(to_row, to_col)
                 moves.append((from_coord, to_coord))
-            
+
             # Only generate list notation if there were actual moves
             # Otherwise use '[]' for no moves
             if moves:
-                # Only include non-empty moves in the FEN
+                # Only include non-empty moves in FEN
                 moves_with_coords = [(frm, to) for frm, to in moves if frm and to]
-                actions_str = '[' + ','.join([f"({frm},{to})" for frm, to in moves_with_coords]) + ']'
+                actions_str = ('[' + ','.join([f"({frm},{to})" for frm, to in
+                                             moves_with_coords]) + ']')
             else:
                 actions_str = '[]'
         elif phase == constants.PHASE_BATTLE:
@@ -233,10 +235,10 @@ class Fen:
         # Remove newlines to handle user formatting, but NOT other whitespace
         # (test_fen_whitespace_handling expects leading/trailing spaces to fail)
         fen_string = fen_string.replace('\n', '')
-        
+
         # Fail on leading/trailing whitespace (for test compatibility)
         if fen_string != fen_string.strip():
-            raise ValueError(f"Invalid FEN: has leading/trailing whitespace")
+            raise ValueError("Invalid FEN: has leading/trailing whitespace")
 
         parts = fen_string.split('/')
         if len(parts) not in [23, 25]:  # 0.1.0 format (23) or 0.1.4/0.2.1 format (25)
@@ -262,15 +264,15 @@ class Fen:
             # so we skip this validation when terrain symbols are present
             terrain_symbols = ['m', 'p', 'f', 'a', '(', '[']
             has_terrain = any(s in row_data for s in terrain_symbols)
-            
+
             if not has_terrain and len(row_data) != 25:
                 raise ValueError(f"Invalid FEN row {row}: expected 25 chars, got {len(row_data)}")
-            
+
             col = 0
             i = 0
             while i < len(row_data):
                 char = row_data[i]
-                
+
                 if char == '_':
                     # Empty flat square
                     board.clear_square(row, col)
@@ -296,9 +298,10 @@ class Fen:
                     col += 1
                     i += 1
                 elif char == 'A' or char == 'a':
-                    # Arsenal terrain: 'A' (North), 'a' (South), 'A{I}' (North with unit), 'a{i}' (South with unit)
+                    # Arsenal terrain: 'A' (North), 'a' (South), 'A{I}'
+                    # (North with unit), 'a{i}' (South with unit)
                     arsenal_owner = 'NORTH' if char == 'A' else 'SOUTH'
-                    
+
                     # Check if this is an arsenal with a unit: 'A{I}' or 'a{i}'
                     if i + 3 < len(row_data) and row_data[i + 1] == '{' and row_data[i + 3] == '}':
                         # Arsenal with unit
@@ -306,14 +309,14 @@ class Fen:
                         is_south = unit_symbol.islower()
                         unit_type = Fen.SYMBOL_TO_PIECE[unit_symbol.upper()]
                         unit_owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
-                        
+
                         # Create unit and set terrain with owner
                         from .pieces import create_piece
                         piece = create_piece(unit_type, unit_owner)
                         board.place_unit(row, col, piece)
                         board.set_terrain(row, col, 'ARSENAL')
                         board.set_arsenal(row, col, arsenal_owner)
-                        
+
                         col += 1
                         i += 4
                     else:
@@ -327,36 +330,36 @@ class Fen:
                     # Unit on mountain pass: (I) or (i)
                     if i + 2 >= len(row_data) or row_data[i + 2] != ')':
                         raise ValueError(f"Invalid pass notation at ({row}, {col})")
-                    
+
                     unit_symbol = row_data[i + 1]
                     is_south = unit_symbol.islower()
                     unit_type = Fen.SYMBOL_TO_PIECE[unit_symbol.upper()]
                     owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
-                    
+
                     # Create unit and set terrain
                     from .pieces import create_piece
                     piece = create_piece(unit_type, owner)
                     board.place_unit(row, col, piece)
                     board.set_terrain(row, col, 'MOUNTAIN_PASS')
-                    
+
                     col += 1
                     i += 3
                 elif char == '[':
                     # Unit in fortress: [I] or [i]
                     if i + 2 >= len(row_data) or row_data[i + 2] != ']':
                         raise ValueError(f"Invalid fortress notation at ({row}, {col})")
-                    
+
                     unit_symbol = row_data[i + 1]
                     is_south = unit_symbol.islower()
                     unit_type = Fen.SYMBOL_TO_PIECE[unit_symbol.upper()]
                     owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
-                    
+
                     # Create unit and set terrain
                     from .pieces import create_piece
                     piece = create_piece(unit_type, owner)
                     board.place_unit(row, col, piece)
                     board.set_terrain(row, col, 'FORTRESS')
-                    
+
                     col += 1
                     i += 3
                 else:
@@ -364,16 +367,16 @@ class Fen:
                     # Check if symbol is valid (for backward compatibility)
                     if char.upper() not in Fen.SYMBOL_TO_PIECE:
                         raise ValueError(f"Invalid piece symbol: {char}")
-                    
+
                     is_south = char.islower()
                     unit_type = Fen.SYMBOL_TO_PIECE[char.upper()]
                     owner = constants.PLAYER_SOUTH if is_south else constants.PLAYER_NORTH
-                    
+
                     # Create unit
                     from .pieces import create_piece
                     piece = create_piece(unit_type, owner)
                     board.place_unit(row, col, piece)
-                    
+
                     col += 1
                     i += 1
 
@@ -400,7 +403,7 @@ class Fen:
                 # Format: [(from,to),(from,to),(from,to),(from,to),(from,to)]
                 if actions.startswith('[') and actions.endswith(']'):
                     actions_list_str = actions[1:-1]  # Remove brackets
-                    
+
                     # Parse move pairs by finding (from,to) patterns
                     # Format is like: (6F,7F),(7G,8G)
                     # We need to extract each (from,to) pair
@@ -412,39 +415,40 @@ class Fen:
                             j = i + 1
                             while j < len(actions_list_str) and actions_list_str[j] != ')':
                                 j += 1
-                            
+
                             if j >= len(actions_list_str):
                                 raise ValueError(f"Invalid movement actions format: {actions}")
-                            
+
                             # Extract the move pair (without parentheses)
                             move_pair = actions_list_str[i+1:j]
-                            
+
                             # Split by comma
                             if ',' not in move_pair:
                                 raise ValueError(f"Invalid move format: {move_pair}")
-                            
+
                             move_parts = move_pair.split(',')
                             if len(move_parts) != 2:
                                 raise ValueError(f"Invalid move format: {move_pair}")
-                            
+
                             frm, to = move_parts
-                            
-                            # Parse coordinates using spreadsheet_to_tuple which handles variable-length coordinates
+
+                            # Parse coordinates using spreadsheet_to_tuple which
+                            # handles variable-length coordinates
                             from_row, from_col = board.spreadsheet_to_tuple(frm.strip())
                             to_row, to_col = board.spreadsheet_to_tuple(to.strip())
-                            
+
                             # Track move in _moved_units
                             board._moved_units.add((from_row, from_col))
-                            
+
                             # Also track by unit ID
                             unit = board.get_unit(to_row, to_col)
                             if unit:
                                 unit_id = id(unit)
                                 board._moved_unit_ids.add(unit_id)
-                            
+
                             # Track complete move in _moves_made
                             board._moves_made.append((from_row, from_col, to_row, to_col))
-                            
+
                             # Move past this pair and the comma after it
                             i = j + 1
                             # Skip comma if present
@@ -455,7 +459,7 @@ class Fen:
                             i += 1
                 else:
                     raise ValueError(f"Invalid movement actions format: {actions}")
-                    
+
             elif phase == constants.PHASE_BATTLE:
                 # Battle phase: <target> or 'pass'
                 if actions == 'pass':
@@ -465,7 +469,7 @@ class Fen:
                 else:
                     # Attack target coordinate
                     target_row, target_col = board.spreadsheet_to_tuple(actions)
-                    
+
                     # Track attack state
                     board._attacks_this_turn = 1
                     board._attack_target = (target_row, target_col)

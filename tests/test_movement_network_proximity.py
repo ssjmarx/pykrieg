@@ -5,7 +5,6 @@ for movement path validation, fixing the bug where units with 2+ movement speed
 couldn't properly move through empty squares adjacent to friendly units.
 """
 
-import pytest
 
 from pykrieg.board import Board
 from pykrieg.constants import PLAYER_NORTH, PLAYER_SOUTH
