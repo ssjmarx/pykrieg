@@ -87,6 +87,10 @@ class Board:
         # Configuration for network rules
         self._enable_adjacency_relay_propagation: bool = enable_adjacency_relay_propagation
 
+        # New for 0.2.2: Game state tracking
+        self._game_state: str = "ONGOING"  # Track game state
+        self._victory_result: Optional[Dict[str, object]] = None  # Store victory details
+
     @property
     def rows(self) -> int:
         """Return number of rows."""
@@ -766,12 +770,13 @@ class Board:
         """Validate a move according to turn rules.
 
         Checks:
-        1. It's the movement phase
-        2. The unit belongs to the current player
-        3. The unit hasn't moved yet this turn
-        4. The player hasn't moved 5 units yet
-        5. If retreats are pending, only allow retreat moves
-        6. The move is legally valid (pseudo-legal check)
+        1. Game is not over
+        2. It's the movement phase
+        3. The unit belongs to the current player
+        4. The unit hasn't moved yet this turn
+        5. The player hasn't moved 5 units yet
+        6. If retreats are pending, only allow retreat moves
+        7. The move is legally valid (pseudo-legal check)
 
         Args:
             from_row: Source row (0-19)
@@ -782,6 +787,10 @@ class Board:
         Returns:
             True if move is valid according to turn rules, False otherwise
         """
+        # NEW: Check if game is over
+        if self.is_game_over():
+            return False
+
         # Ensure network is up-to-date before checking movement
         self._ensure_network_calculated()
 
@@ -821,14 +830,17 @@ class Board:
         return is_valid_move(self, from_row, from_col, to_row, to_col, player)
 
     def make_turn_move(self, from_row: int, from_col: int,
-                       to_row: int, to_col: int) -> object:
+                       to_row: int, to_col: int) -> Tuple[object, bool]:
         """Make a move with turn validation and tracking.
+
+        Modified for 0.2.2: Check for enemy arsenal destruction.
 
         This method:
         1. Validates the move according to turn rules
         2. Executes the move
-        3. Tracks that the unit has moved this turn
-        4. Clears the retreat flag if this was a retreat move
+        3. Checks if destination is enemy arsenal and destroys it
+        4. Tracks that the unit has moved this turn
+        5. Clears the retreat flag if this was a retreat move
 
         Args:
             from_row: Source row (0-19)
@@ -837,7 +849,7 @@ class Board:
             to_col: Target column (0-24)
 
         Returns:
-            The Unit object that was moved
+            Tuple of (unit that moved, arsenal_destroyed flag)
 
         Raises:
             ValueError: If move is invalid according to turn rules
@@ -852,6 +864,15 @@ class Board:
         unit = self.get_unit(from_row, from_col)
         unit_id = id(unit)
 
+        # Check if destination is enemy arsenal before moving
+        arsenal_destroyed = False
+        if self._terrain[to_row][to_col] == constants.TERRAIN_ARSENAL:
+            arsenal_owner = self._arsenal_owners.get((to_row, to_col))
+            if arsenal_owner != unit.owner:  # type: ignore[attr-defined]
+                # Destroy enemy arsenal
+                self.destroy_arsenal(to_row, to_col)
+                arsenal_destroyed = True
+
         # Execute move
         from .movement import execute_move
         moved_unit = execute_move(self, from_row, from_col, to_row, to_col)
@@ -865,16 +886,17 @@ class Board:
         if (from_row, from_col) in self._units_must_retreat:
             self._units_must_retreat.remove((from_row, from_col))
 
-        return moved_unit
+        return (moved_unit, arsenal_destroyed)
 
     def validate_attack(self, target_row: int, target_col: int) -> bool:
         """Validate an attack according to turn rules.
 
         Checks:
-        1. It's the battle phase
-        2. The current player hasn't attacked yet
-        3. There's at least one attacking unit
-        4. No units must retreat (retreat enforcement)
+        1. Game is not over
+        2. It's the battle phase
+        3. The current player hasn't attacked yet
+        4. There's at least one attacking unit
+        5. No units must retreat (retreat enforcement)
 
         Args:
             target_row: Target row (0-19)
@@ -883,6 +905,10 @@ class Board:
         Returns:
             True if attack is valid according to turn rules, False otherwise
         """
+        # NEW: Check if game is over
+        if self.is_game_over():
+            return False
+
         # Ensure network is up-to-date before checking attack
         self._ensure_network_calculated()
 
@@ -1056,6 +1082,8 @@ class Board:
         4. Resets phase to movement
         5. Increments turn number
         6. Resolves any pending retreats for new player
+        7. Recalculates networks to ensure victory checks have current state
+        8. Checks victory conditions (new for 0.2.2)
 
         Returns:
             List of tuples (row, col, unit, reason) for captured units during retreat resolution
@@ -1078,7 +1106,20 @@ class Board:
         self._attack_target = None  # Clear attack target
 
         # Resolve retreats for new player and capture any that have no valid retreat
-        return self.resolve_retreats()
+        captured = self.resolve_retreats()
+
+        # Recalculate networks before checking victory conditions
+        # This ensures network collapse victory is detected after arsenal destruction
+        if self._network_calculated:
+            self._relay_online_status.clear()
+            self.calculate_network(constants.PLAYER_NORTH)
+            self.calculate_network(constants.PLAYER_SOUTH)
+            self._network_dirty = False
+
+        # NEW: Check victory conditions after turn
+        self.check_victory()
+
+        return captured
 
     def reset_turn_state(self) -> None:
         """Reset turn state without changing turn number or player.
@@ -1913,3 +1954,129 @@ class Board:
             return (row, col) in self._ray_coverage_north
         else:
             return (row, col) in self._ray_coverage_south
+
+    # =====================================================================
+    # 0.2.2: Victory Condition Detection
+    # =====================================================================
+
+    @property
+    def game_state(self) -> str:
+        """Return current game state.
+
+        Returns:
+            'ONGOING', 'NORTH_WINS', 'SOUTH_WINS', or 'DRAW'
+        """
+        return self._game_state
+
+    @property
+    def victory_result(self) -> Optional[Dict[str, object]]:
+        """Return victory result if game has ended, None otherwise.
+
+        Returns:
+            Dictionary with victory details or None if game is ongoing.
+            Keys: 'game_state', 'winner', 'victory_condition', 'details'
+        """
+        return self._victory_result
+
+    def is_game_over(self) -> bool:
+        """Check if game has ended.
+
+        Returns:
+            True if game is over (winner determined or draw), False otherwise
+        """
+        return self._game_state != "ONGOING"
+
+    def check_victory(self) -> Dict[str, object]:
+        """Check victory conditions and update game state.
+
+        This method should be called after each turn to detect victory conditions.
+
+        Returns:
+            Dictionary with victory details:
+            - 'game_state': Current game state
+            - 'winner': Winning player or None
+            - 'victory_condition': Specific condition met or None
+            - 'details': Human-readable explanation
+        """
+        from .victory import check_victory_conditions
+
+        result = check_victory_conditions(self)
+        self._game_state = result.game_state.value
+        self._victory_result = {
+            'game_state': result.game_state.value,
+            'winner': result.winner,
+            'victory_condition': (
+                result.victory_condition.value
+                if result.victory_condition
+                else None
+            ),
+            'details': result.details
+        }
+
+        return self._victory_result
+
+    def handle_surrender(self, player: str) -> None:
+        """Handle a player's surrender.
+
+        This method sets the game state to indicate the surrendering player has lost.
+
+        Args:
+            player: 'NORTH' or 'SOUTH' - the player who is surrendering
+
+        Raises:
+            ValueError: If game is already over or player is invalid
+        """
+        # Check if game is already over
+        if self.is_game_over():
+            raise ValueError("Cannot surrender: game is already over")
+
+        # Validate player
+        if player not in (constants.PLAYER_NORTH, constants.PLAYER_SOUTH):
+            raise ValueError(f"Invalid player: {player}")
+
+        # Determine winner (opponent of surrendering player)
+        winner = (
+            constants.PLAYER_SOUTH
+            if player == constants.PLAYER_NORTH
+            else constants.PLAYER_NORTH
+        )
+
+        # Update game state
+        self._game_state = f"{winner}_WINS"
+        self._victory_result = {
+            'game_state': self._game_state,
+            'winner': winner,
+            'victory_condition': 'SURRENDER',
+            'details': f"{winner} wins: {player} has surrendered"
+        }
+
+    def destroy_arsenal(self, row: int, col: int) -> None:
+        """Destroy an arsenal at the specified position.
+
+        This is called when a unit moves onto an enemy arsenal.
+        The arsenal is removed from the board and the terrain becomes empty.
+
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+
+        Raises:
+            ValueError: If position doesn't contain an arsenal
+        """
+        if self._terrain[row][col] != constants.TERRAIN_ARSENAL:
+            raise ValueError(f"No arsenal at position ({row}, {col})")
+
+        # Remove arsenal terrain (set to None for empty terrain)
+        self._terrain[row][col] = None
+
+        # Remove from arsenal owners dict
+        if (row, col) in self._arsenal_owners:
+            del self._arsenal_owners[(row, col)]
+
+        # Mark network as dirty for recalculation
+        self._network_dirty = True
+
+        # NOTE: Victory checking is deferred until end_turn() is called
+        # This ensures the turn state is properly updated (turn number, captured units, etc.)
+        # before determining victory conditions. The network will be recalculated
+        # as part of end_turn() -> resolve_retreats() -> check_victory() sequence.

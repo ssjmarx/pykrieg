@@ -126,6 +126,10 @@ class ConsoleGame:
         # Display retreat warning if applicable
         self._display_retreat_warning()
 
+        # Display victory message if game over
+        if self.board.is_game_over():
+            self._display_victory_message()
+
     def _display_retreat_warning(self) -> None:
         """Display warning for units that must retreat."""
         retreats = self.board.get_units_must_retreat()
@@ -138,7 +142,7 @@ class ConsoleGame:
                     unit_type = getattr(unit, 'unit_type', 'Unit')
                     retreat_units.append(f"{unit_type} at {coord}")
 
-            retreat_msg = "\n⚠️  UNITS MUST RETREAT:\n"
+            retreat_msg = "\nUNITS MUST RETREAT:\n"
             retreat_msg += "   " + ", ".join(retreat_units)
             retreat_msg += "\n   These units must move before other units can move."
             print(retreat_msg)
@@ -629,6 +633,8 @@ class ConsoleGame:
             self._execute_pass(command)
         elif cmd_type.name == "END_TURN":
             self._execute_end_turn(command)
+        elif cmd_type.name == "SURRENDER":
+            self._execute_surrender(command)
         elif cmd_type.name == "SAVE":
             self._execute_save(command)
         elif cmd_type.name == "LOAD":
@@ -644,6 +650,8 @@ class ConsoleGame:
 
     def _execute_move(self, command: Command) -> None:
         """Execute move command.
+
+        Modified for 0.2.2: Handle enemy arsenal destruction.
 
         Args:
             command: Move command with from/to coordinates
@@ -697,13 +705,46 @@ class ConsoleGame:
 
         # Execute move
         try:
-            unit = self.board.make_turn_move(from_row, from_col, to_row, to_col)
+            unit, arsenal_destroyed = self.board.make_turn_move(from_row, from_col, to_row, to_col)
             if not hasattr(unit, 'unit_type'):
                 raise ValueError("Invalid unit returned from move")
             from .parser import format_move
             move_str = format_move(from_row, from_col, to_row, to_col)
             unit_type = getattr(unit, 'unit_type', 'Unknown')
             message = f"Moved {unit_type} from {move_str}"
+
+            # Check for enemy arsenal destruction
+            if arsenal_destroyed:
+                message += "\nENEMY ARSENAL DESTROYED!"
+                message += "\nThis counts as your attack. Turn ending."
+
+                # End turn immediately
+                captured_units = self.board.end_turn()
+                message += f"\nTurn ended. Now {self.board.turn}'s turn."
+
+                # Display capture notifications for units with no valid retreat
+                if captured_units:
+                    for cap_row, cap_col, cap_unit, cap_reason in captured_units:
+                        cap_coord = self.board.tuple_to_spreadsheet(cap_row, cap_col)
+                        cap_type = getattr(cap_unit, 'unit_type', 'Unit')
+                        message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
+
+                # Display victory message if game over
+                if self.board.is_game_over():
+                    message += "\n\n" + self._format_victory_message()
+
+                # Update curses input board reference
+                if self.curses_input:
+                    self.curses_input.update_board(self.board)
+
+                # Display message based on mode
+                if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                    self.curses_input.show_message(message)
+                else:
+                    print(message)
+                    input("Press Enter to continue...")
+                    self._render()
+                return
 
             # After successful move, recalculate networks for both players
             # Moving units can change line-of-sight for both players
@@ -807,6 +848,10 @@ class ConsoleGame:
                     cap_coord = self.board.tuple_to_spreadsheet(cap_row, cap_col)
                     cap_type = getattr(cap_unit, 'unit_type', 'Unit')
                     message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
+
+            # Display victory message if game over
+            if self.board.is_game_over():
+                message += "\n\n" + self._format_victory_message()
 
             # Update curses input board reference
             if self.curses_input:
@@ -927,6 +972,10 @@ class ConsoleGame:
                     cap_type = getattr(cap_unit, 'unit_type', 'Unit')
                     message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
 
+            # Display victory message if game over
+            if self.board.is_game_over():
+                message += "\n\n" + self._format_victory_message()
+
             # Update curses input board reference
             if self.curses_input:
                 self.curses_input.update_board(self.board)
@@ -966,6 +1015,10 @@ class ConsoleGame:
                     cap_type = getattr(cap_unit, 'unit_type', 'Unit')
                     message += f"\n{cap_type} at {cap_coord} captured ({cap_reason})"
 
+            # Display victory message if game over
+            if self.board.is_game_over():
+                message += "\n\n" + self._format_victory_message()
+
             # Display message based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
                 self.curses_input.show_message(message)
@@ -975,6 +1028,40 @@ class ConsoleGame:
                 self._render()
         except Exception as e:
             message = f"Error ending turn: {e}"
+
+            # Display error based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+
+    def _execute_surrender(self, command: Command) -> None:
+        """Execute surrender command.
+
+        Args:
+            command: Surrender command (unused but for consistency)
+        """
+        try:
+            # Surrender on behalf of current player
+            self.board.handle_surrender(self.board.turn)
+
+            message = f"{self.board.turn} has surrendered!"
+
+            # Display victory message if game over
+            if self.board.is_game_over():
+                message += "\n\n" + self._format_victory_message()
+
+            # Display message based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+        except Exception as e:
+            message = f"Error surrendering: {e}"
 
             # Display error based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
@@ -1210,6 +1297,36 @@ class ConsoleGame:
             print(f"Warning: Failed to load default starting position: {e}")
             print("Starting with empty board.")
             return Board()
+
+    def _format_victory_message(self) -> str:
+        """Format victory message for display.
+
+        Returns:
+            Formatted victory message string
+        """
+        result = self.board.victory_result
+        if not result:
+            return "Game Over!"
+
+        winner = result.get('winner', 'Unknown')
+        condition = result.get('victory_condition', 'Unknown')
+        details = result.get('details', 'Game ended')
+
+        message = "GAME OVER\n"
+        message += f"\nWinner: {winner}"
+        message += f"\nCondition: {condition}"
+        message += f"\n\n{details}"
+        message += "\n\nType 'quit' to exit."
+
+        return message
+
+    def _display_victory_message(self) -> None:
+        """Display victory message in compatibility mode."""
+        print()
+        print("=" * 50)
+        print(self._format_victory_message())
+        print("=" * 50)
+        print()
 
     def _quit(self) -> None:
         """Quit the game."""

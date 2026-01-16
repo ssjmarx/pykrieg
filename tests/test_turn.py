@@ -418,6 +418,8 @@ class TestRetreatResolution:
     def test_retreat_move_clears_retreat_flag(self):
         """Test that moving retreating unit clears retreat flag (NEW in 0.1.5)."""
         board = Board()
+        # Both players need units before end_turn to avoid victory detection
+        board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
         board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")
 
         # Add pending retreat
@@ -430,7 +432,7 @@ class TestRetreatResolution:
         # Unit should be marked as must retreat
         assert board.is_unit_in_retreat(5, 12) is True
 
-        # Move the unit to retreat
+        # Move unit to retreat
         board.make_turn_move(5, 12, 6, 12)
 
         # Retreat flag should be cleared after move
@@ -441,6 +443,7 @@ class TestRetreatResolution:
     def test_non_retreat_move_blocked_when_retreats_pending(self):
         """Test non-retreat moves are blocked when retreats pending (NEW in 0.1.5)."""
         board = Board()
+        board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")  # NORTH needs unit
         board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")  # Must retreat
         board.create_and_place_unit(5, 13, "CAVALRY", "SOUTH")  # Normal unit
 
@@ -514,19 +517,20 @@ class TestFullTurnSequence:
 
         # Turn 1: NORTH
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
+        board.create_and_place_unit(15, 10, "INFANTRY", "SOUTH")  # SOUTH needs unit before end_turn
         board.make_turn_move(5, 10, 6, 10)
         board.switch_to_battle_phase()
         board.pass_attack()
         board.end_turn()
 
         # Turn 1: SOUTH
-        board.create_and_place_unit(15, 10, "INFANTRY", "SOUTH")
         board.make_turn_move(15, 10, 14, 10)
         board.switch_to_battle_phase()
         board.pass_attack()
         board.end_turn()
 
         # Turn 2: NORTH
+        # NORTH already has unit at (6, 10) from turn 1
         board.make_turn_move(6, 10, 7, 10)
         board.switch_to_battle_phase()
         board.pass_attack()

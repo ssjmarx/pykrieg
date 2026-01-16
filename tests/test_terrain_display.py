@@ -150,7 +150,7 @@ class TestCompatibilityRendering:
         display = BoardDisplay(mode=DisplayMode.COMPATIBILITY)
         cell = display._render_cell_compat(board, 10, 10)
 
-        assert cell == "(I"  # Only opening bracket + unit (2 chars)
+        assert cell == "I)"  # Unit + closing bracket (2 chars)
 
     def test_render_cell_compat_fortress_empty(self):
         """Render empty fortress in compatibility mode."""
@@ -171,7 +171,7 @@ class TestCompatibilityRendering:
         display = BoardDisplay(mode=DisplayMode.COMPATIBILITY)
         cell = display._render_cell_compat(board, 10, 10)
 
-        assert cell == "[I"  # Only opening bracket + unit (2 chars)
+        assert cell == "I]"  # Unit + closing bracket (2 chars)
 
     def test_render_cell_compat_south_unit_in_pass(self):
         """Render South unit in pass in compatibility mode."""
@@ -182,7 +182,7 @@ class TestCompatibilityRendering:
         display = BoardDisplay(mode=DisplayMode.COMPATIBILITY)
         cell = display._render_cell_compat(board, 10, 10)
 
-        assert cell == "(i"  # Only opening bracket + unit (2 chars)
+        assert cell == "i)"  # Unit + closing bracket (2 chars)
 
     def test_render_cell_compat_multiple_terrain_types(self):
         """Render multiple terrain types in compatibility mode."""
@@ -199,10 +199,10 @@ class TestCompatibilityRendering:
 
         display = BoardDisplay(mode=DisplayMode.COMPATIBILITY)
 
-        # Check each terrain type (no trailing spaces)
+        # Check each terrain type
         assert display._render_cell_compat(board, 10, 10) == "M"
-        assert display._render_cell_compat(board, 10, 11) == "(C"  # No closing bracket
-        assert display._render_cell_compat(board, 10, 12) == "[k"  # No closing bracket
+        assert display._render_cell_compat(board, 10, 11) == "C)"  # Unit + closing bracket
+        assert display._render_cell_compat(board, 10, 12) == "k]"  # Unit + closing bracket
 
 
 class TestCursesRendering:
@@ -222,7 +222,7 @@ class TestCursesRendering:
 
         # Row should contain terrain and units
         assert "M " in row  # Mountain with space added by join
-        assert "(I" in row  # Occupied pass without closing bracket
+        assert "I)" in row  # Occupied pass with closing bracket
 
     def test_render_compatibility_with_terrain(self):
         """Full compatibility rendering with terrain."""
@@ -240,7 +240,7 @@ class TestCursesRendering:
         assert isinstance(output, str)
         # Should contain terrain glyphs
         assert "M " in output  # Mountain with space added by join
-        assert "(I" in output  # Occupied pass without closing bracket
+        assert "I)" in output  # Occupied pass with closing bracket
 
 
 class TestTerrainDisplayIntegration:
@@ -268,8 +268,8 @@ class TestTerrainDisplayIntegration:
 
             if mode == DisplayMode.COMPATIBILITY:
                 assert cell_mountain == "M"  # Empty terrain without space
-                assert cell_pass == "(I"  # No closing bracket
-                assert cell_fortress == "[c"  # No closing bracket
+                assert cell_pass == "I)"  # Unit + closing bracket
+                assert cell_fortress == "c]"  # Unit + closing bracket
 
     def test_swift_unit_on_terrain_compat(self):
         """Swift unit on terrain in compatibility mode."""
@@ -280,5 +280,5 @@ class TestTerrainDisplayIntegration:
         display = BoardDisplay(mode=DisplayMode.COMPATIBILITY)
         cell = display._render_cell_compat(board, 10, 10)
 
-        # Swift cannon in fortress - only opening bracket
-        assert cell == "[W"
+        # Swift cannon in fortress - unit + closing bracket
+        assert cell == "W]"

@@ -182,20 +182,16 @@ class BoardDisplay:
                 elif terrain in ("MOUNTAIN_PASS", "FORTRESS", "ARSENAL"):
                     # Pass, Fortress, or Arsenal - can be occupied or empty
                     if unit:
-                        # Occupied terrain - render with brackets
+                        # Occupied terrain - render with unit + closing bracket
                         owner = getattr(unit, 'owner', None)
                         is_online = board.is_unit_online(row, col, owner) if owner else True
                         unit_color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
                         unit_glyph = self._get_unit_glyph(unit, is_online)
 
-                        # Opening bracket with terrain color
+                        # Closing bracket with terrain color
                         bracket_color = terrain_color
-                        opening_bracket = ("{" if terrain == "ARSENAL" else
-                                          ("(" if terrain == "MOUNTAIN_PASS" else "["))
-
-                        # Render: bracket + unit (no closing bracket for arsenal)
-                        stdscr.addstr(y_pos, x_pos, opening_bracket,
-                                      curses.color_pair(bracket_color))
+                        closing_bracket = ("}" if terrain == "ARSENAL" else
+                                          (")" if terrain == "MOUNTAIN_PASS" else "]"))
 
                         # Check for swift unit
                         unit_type = getattr(unit, 'unit_type', '').upper()
@@ -203,12 +199,17 @@ class BoardDisplay:
 
                         if is_swift_unit:
                             # Swift unit: unit glyph + star
-                            stdscr.addstr(y_pos, x_pos + 1, unit_glyph,
+                            stdscr.addstr(y_pos, x_pos, unit_glyph,
                                           curses.color_pair(unit_color))
+                            # Closing bracket overwrites star position
+                            stdscr.addstr(y_pos, x_pos + 1, closing_bracket,
+                                          curses.color_pair(bracket_color))
                         else:
-                            # Regular unit: unit glyph
-                            stdscr.addstr(y_pos, x_pos + 1, unit_glyph,
+                            # Regular unit: unit glyph + closing bracket
+                            stdscr.addstr(y_pos, x_pos, unit_glyph,
                                           curses.color_pair(unit_color))
+                            stdscr.addstr(y_pos, x_pos + 1, closing_bracket,
+                                          curses.color_pair(bracket_color))
                     else:
                         # Empty terrain
                         stdscr.addstr(y_pos, x_pos, self._get_terrain_glyph_curses(terrain),
@@ -315,26 +316,26 @@ class BoardDisplay:
             elif terrain in ("MOUNTAIN_PASS", "FORTRESS"):
                 # Pass or Fortress with highlight background
                 if unit:
-                    # Occupied terrain with brackets and highlight
+                    # Occupied terrain with unit + closing bracket and highlight
                     owner = getattr(unit, 'owner', None)
                     is_online = board.is_unit_online(row, col, owner) if board and owner else True
                     unit_glyph = self._get_unit_glyph(unit, is_online)
 
-                    opening_bracket = "(" if terrain == "MOUNTAIN_PASS" else "["
+                    closing_bracket = ")" if terrain == "MOUNTAIN_PASS" else "]"
 
-                    # Render: bracket (highlight bg) + unit (highlight bg)
-                    stdscr.addstr(y, x, opening_bracket, curses.color_pair(bg_pair))
+                    # Render: unit (highlight bg) + closing bracket (highlight bg)
+                    stdscr.addstr(y, x, unit_glyph, curses.color_pair(bg_pair))
 
                     # Check for swift unit
                     unit_type = getattr(unit, 'unit_type', '').upper()
                     is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
 
                     if is_swift_unit:
-                        # Swift unit: unit glyph + star (both with highlight bg)
-                        stdscr.addstr(y, x + 1, unit_glyph, curses.color_pair(bg_pair))
+                        # Swift unit: closing bracket overwrites star position
+                        stdscr.addstr(y, x + 1, closing_bracket, curses.color_pair(bg_pair))
                     else:
-                        # Regular unit: unit glyph with highlight bg
-                        stdscr.addstr(y, x + 1, unit_glyph, curses.color_pair(bg_pair))
+                        # Regular unit: closing bracket with highlight bg
+                        stdscr.addstr(y, x + 1, closing_bracket, curses.color_pair(bg_pair))
                 else:
                     # Empty terrain with highlight
                     stdscr.addstr(y, x, self._get_terrain_glyph_curses(terrain),
@@ -715,9 +716,8 @@ class BoardDisplay:
         Returns:
             String representation of cell (ASCII)
 
-        NOTE: Returns cell content. For occupied terrain, returns bracket +
-        unit (no closing bracket). The row renderer handles spacing
-        appropriately.
+        NOTE: Returns cell content. For occupied terrain, returns unit +
+        closing bracket. The row renderer handles spacing appropriately.
         """
         unit = board.get_unit(row, col)
         terrain = board.get_terrain(row, col)
@@ -730,12 +730,11 @@ class BoardDisplay:
             elif terrain in ("MOUNTAIN_PASS", "FORTRESS", "ARSENAL"):
                 # Pass, Fortress, or Arsenal - can be occupied or empty
                 if unit:
-                    # Occupied terrain - render with opening bracket + unit
-                    # NO closing bracket - this is a 2-char cell
+                    # Occupied terrain - render with unit + closing bracket
                     unit_char = self._get_unit_char(unit)
-                    opening_bracket = ("{" if terrain == "ARSENAL" else
-                                      ("(" if terrain == "MOUNTAIN_PASS" else "["))
-                    return f"{opening_bracket}{unit_char}"
+                    closing_bracket = ("}" if terrain == "ARSENAL" else
+                                      (")" if terrain == "MOUNTAIN_PASS" else "]"))
+                    return f"{unit_char}{closing_bracket}"
                 else:
                     # Empty terrain - 1 char cell
                     return self._get_terrain_glyph_compat(terrain)

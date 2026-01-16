@@ -25,6 +25,7 @@ class CommandType(Enum):
     ATTACK = "attack"
     PASS = "pass"
     END_TURN = "end"
+    SURRENDER = "surrender"
     SAVE = "save"
     LOAD = "load"
     HELP = "help"
@@ -91,6 +92,8 @@ def parse_command(input_str: str) -> Command:
         return Command(CommandType.PASS)
     elif cmd in ["end", "e"]:
         return Command(CommandType.END_TURN)
+    elif cmd == "surrender":
+        return Command(CommandType.SURRENDER)
     elif cmd in ["phase", "ph"]:
         return _parse_phase_command(parts)
     elif cmd in ["save", "s"]:
@@ -555,6 +558,7 @@ def get_help_text() -> str:
         "  ph m                 Switch to movement phase (abbreviated)",
         "",
         "Game Management:",
+        "  surrender             Surrender the game (concede defeat)",
         "  save [filename]      Save game to FEN file",
         "  load [filename]      Load game from FEN file",
         "",
@@ -567,7 +571,7 @@ def get_help_text() -> str:
         "  quit, q, exit        Quit game",
         "",
         "Coordinate Formats:",
-        "  Spreadsheet: 1A, 10B, 25T (numbers + letters)",
+        "  Spreadsheet:1A, 10B, 25T (numbers + letters)",
         "  Numeric: 5,10 or 5 10 (row, column)",
         "  Rows: A-T (top to bottom, 0-19)",
         "  Columns: 1-25 (left to right, 0-24)",
