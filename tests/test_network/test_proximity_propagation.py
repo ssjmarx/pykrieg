@@ -2,7 +2,7 @@
 
 
 from pykrieg.board import Board
-from pykrieg.constants import PLAYER_NORTH, PLAYER_SOUTH, UNIT_ARSENAL, UNIT_INFANTRY
+from pykrieg.constants import PLAYER_NORTH, PLAYER_SOUTH, UNIT_INFANTRY
 
 
 class TestProximityPropagation:
@@ -13,7 +13,7 @@ class TestProximityPropagation:
         board = Board()
 
         # Place arsenal and infantry nearby
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(11, 12, UNIT_INFANTRY, PLAYER_NORTH)
 
         board.enable_networks()
@@ -26,7 +26,7 @@ class TestProximityPropagation:
         board = Board()
 
         # Place arsenal and infantry in all 8 directions
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         for dx, dy in [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]:
             board.create_and_place_unit(10 + dx, 12 + dy, UNIT_INFANTRY, PLAYER_NORTH)
 
@@ -41,7 +41,7 @@ class TestProximityPropagation:
         board = Board()
 
         # Place arsenal and enemy infantry adjacent
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(11, 12, UNIT_INFANTRY, PLAYER_SOUTH)
 
         board.enable_networks()
@@ -56,7 +56,7 @@ class TestProximityPropagation:
         board = Board()
 
         # Place arsenal and chain of infantry
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(11, 12, UNIT_INFANTRY, PLAYER_NORTH)
         board.create_and_place_unit(12, 12, UNIT_INFANTRY, PLAYER_NORTH)
         board.create_and_place_unit(13, 12, UNIT_INFANTRY, PLAYER_NORTH)
@@ -73,7 +73,7 @@ class TestProximityPropagation:
         board = Board()
 
         # Place arsenal and infantry
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(11, 12, UNIT_INFANTRY, PLAYER_NORTH)
         board.create_and_place_unit(12, 12, UNIT_INFANTRY, PLAYER_NORTH)
 

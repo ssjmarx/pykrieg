@@ -31,7 +31,6 @@ from .movement import (
     is_valid_move,
 )
 from .pieces import (
-    Arsenal,
     Cannon,
     Cavalry,
     Infantry,
@@ -64,7 +63,6 @@ __all__ = [
     'Infantry',
     'Cavalry',
     'Cannon',
-    'Arsenal',
     'Relay',
     'SwiftCannon',
     'SwiftRelay',

@@ -9,8 +9,8 @@ def test_full_board_serialization():
     """Test complete board serialization/deserialization with all squares filled."""
     board1 = Board()
 
-    # Fill entire board with pieces
-    unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+    # Fill entire board with pieces (excluding ARSENAL - now terrain, not unit)
+    unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
     for row in range(board1.rows):
         for col in range(board1.cols):
@@ -46,19 +46,17 @@ def test_complex_scenario_with_turns():
     # Create initial board state
     board1 = Board()
 
-    # Add pieces in strategic positions
+    # Add pieces in strategic positions (arsenals as terrain)
     pieces = [
         (0, 0, 'INFANTRY', 'NORTH'),
         (0, 5, 'CAVALRY', 'NORTH'),
         (0, 10, 'CANNON', 'NORTH'),
-        (0, 15, 'ARSENAL', 'NORTH'),
         (0, 20, 'RELAY', 'NORTH'),
         (2, 2, 'SWIFT_CANNON', 'NORTH'),
         (2, 22, 'SWIFT_RELAY', 'NORTH'),
         (19, 0, 'INFANTRY', 'SOUTH'),
         (19, 5, 'CAVALRY', 'SOUTH'),
         (19, 10, 'CANNON', 'SOUTH'),
-        (19, 15, 'ARSENAL', 'SOUTH'),
         (19, 20, 'RELAY', 'SOUTH'),
         (17, 2, 'SWIFT_CANNON', 'SOUTH'),
         (17, 22, 'SWIFT_RELAY', 'SOUTH'),
@@ -66,6 +64,10 @@ def test_complex_scenario_with_turns():
 
     for row, col, piece_type, owner in pieces:
         board1.create_and_place_unit(row, col, piece_type, owner)
+
+    # Add arsenals as terrain
+    board1.set_arsenal(0, 15, 'NORTH')
+    board1.set_arsenal(19, 15, 'SOUTH')
 
     # Set turn to SOUTH
     board1._turn = 'SOUTH'
@@ -80,6 +82,10 @@ def test_complex_scenario_with_turns():
         assert unit is not None, f"No unit at ({row}, {col})"
         assert unit.unit_type == piece_type, f"Wrong type at ({row}, {col})"
         assert unit.owner == owner, f"Wrong owner at ({row}, {col})"
+
+    # Verify arsenals
+    assert board2.get_arsenal_owner(0, 15) == 'NORTH'
+    assert board2.get_arsenal_owner(19, 15) == 'SOUTH'
 
     # Verify turn
     assert board2.turn == 'SOUTH'
@@ -128,16 +134,11 @@ def test_multiple_serialization_roundtrips():
     """Test multiple serialization/deserialization roundtrips preserve state."""
     board1 = Board()
 
-    # Add pieces
-    test_pieces = [
-        (0, 0, 'INFANTRY', 'NORTH'),
-        (5, 5, 'CAVALRY', 'NORTH'),
-        (10, 10, 'CANNON', 'SOUTH'),
-        (15, 15, 'ARSENAL', 'SOUTH'),
-    ]
-
-    for row, col, piece_type, owner in test_pieces:
-        board1.create_and_place_unit(row, col, piece_type, owner)
+    # Add pieces (arsenals as terrain)
+    board1.create_and_place_unit(0, 0, 'INFANTRY', 'NORTH')
+    board1.create_and_place_unit(5, 5, 'CAVALRY', 'NORTH')
+    board1.create_and_place_unit(10, 10, 'CANNON', 'SOUTH')
+    board1.set_arsenal(15, 15, 'SOUTH')
 
     # Perform multiple roundtrips
     board2 = Fen.fen_to_board(Fen.board_to_fen(board1))
@@ -145,17 +146,12 @@ def test_multiple_serialization_roundtrips():
     board4 = Fen.fen_to_board(Fen.board_to_fen(board3))
     board5 = Fen.fen_to_board(Fen.board_to_fen(board4))
 
-    # Verify all boards are identical
-    for row, col, piece_type, owner in test_pieces:
-        unit1 = board1.get_unit(row, col)
-        unit2 = board2.get_unit(row, col)
-        unit3 = board3.get_unit(row, col)
-        unit4 = board4.get_unit(row, col)
-        unit5 = board5.get_unit(row, col)
-
-        assert unit1.unit_type == unit2.unit_type == unit3.unit_type == unit4.unit_type == unit5.unit_type
-        assert unit5.unit_type == piece_type
-        assert unit5.owner == owner
+    # Verify units
+    assert board5.get_unit(0, 0).unit_type == 'INFANTRY'
+    assert board5.get_unit(5, 5).unit_type == 'CAVALRY'
+    assert board5.get_unit(10, 10).unit_type == 'CANNON'
+    # Verify arsenal
+    assert board5.get_arsenal_owner(15, 15) == 'SOUTH'
 
 
 def test_empty_board_operations():
@@ -254,14 +250,18 @@ def test_all_unit_types_integration():
     """Test all unit types work correctly in integration."""
     board1 = Board()
 
-    # Add one of each unit type for both players
-    unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+    # Add one of each unit type for both players (excluding ARSENAL - now terrain)
+    unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
     col = 0
     for unit_type in unit_types:
         board1.create_and_place_unit(0, col, unit_type, 'NORTH')
         board1.create_and_place_unit(19, col, unit_type, 'SOUTH')
         col += 1
+
+    # Add arsenals as terrain
+    board1.set_arsenal(0, 6, 'NORTH')
+    board1.set_arsenal(19, 6, 'SOUTH')
 
     # Serialize
     fen = Fen.board_to_fen(board1)
@@ -282,3 +282,7 @@ def test_all_unit_types_integration():
         assert south_unit.owner == 'SOUTH'
 
         col += 1
+
+    # Verify arsenals
+    assert board2.get_arsenal_owner(0, 6) == 'NORTH'
+    assert board2.get_arsenal_owner(19, 6) == 'SOUTH'

@@ -248,7 +248,7 @@ class TestAttackPowerCalculation:
     def test_arsenal_no_attack(self):
         """Test Arsenal contributes 0 attack."""
         board = Board()
-        board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
+        board.set_arsenal(5, 10, "NORTH")
         board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")
 
         attack = calculate_attack_power(board, 5, 12, "NORTH")
@@ -447,7 +447,7 @@ class TestDefensePowerCalculation:
     def test_arsenal_no_defense(self):
         """Test Arsenal contributes 0 defense."""
         board = Board()
-        board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
+        board.set_arsenal(5, 10, "NORTH")
         board.create_and_place_unit(5, 12, "INFANTRY", "SOUTH")
 
         defense = calculate_defense_power(board, 5, 12, "NORTH")
@@ -923,7 +923,7 @@ class TestEdgeCases:
         """Test defense power of 0 (Arsenal or no defenders)."""
         board = Board()
         board.create_and_place_unit(5, 11, "INFANTRY", "NORTH")
-        board.create_and_place_unit(5, 12, "ARSENAL", "SOUTH")
+        board.set_arsenal(5, 12, "SOUTH")
 
         result = calculate_combat(board, 5, 12, "NORTH", "SOUTH")
         assert result['defense_power'] == 0

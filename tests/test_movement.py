@@ -110,13 +110,14 @@ class TestMovementGeneration:
         moves = generate_moves(board, 10, 12)
         assert len(moves) == 24
 
-    def test_arsenal_no_movement(self):
-        """Test Arsenal has no legal moves."""
+    def test_terrain_no_movement(self):
+        """Test terrain (arsenal) has no legal moves - units are required."""
         board = Board()
-        board.create_and_place_unit(10, 12, "ARSENAL", "NORTH")
+        board.set_arsenal(10, 12, "NORTH")
 
-        moves = generate_moves(board, 10, 12)
-        assert len(moves) == 0
+        # No unit at arsenal square
+        with pytest.raises(ValueError, match="No unit at position"):
+            generate_moves(board, 10, 12)
 
 
 class TestMoveValidation:
@@ -191,12 +192,6 @@ class TestMoveValidation:
         assert is_valid_move(board, 10, 12, 10, 10, "NORTH") is True  # Left 2
         assert is_valid_move(board, 10, 12, 10, 14, "NORTH") is True  # Right 2
 
-    def test_arsenal_cannot_move(self):
-        """Test Arsenal cannot move."""
-        board = Board()
-        board.create_and_place_unit(10, 12, "ARSENAL", "NORTH")
-
-        assert is_valid_move(board, 10, 12, 11, 12, "NORTH") is False
 
 
 class TestMoveExecution:
@@ -239,7 +234,7 @@ class TestMoveExecution:
         """Test executing multiple moves in sequence."""
         board = Board()
         # Add arsenal so units are online (0.2.0 network system)
-        board.create_and_place_unit(9, 12, "ARSENAL", "NORTH")
+        board.set_arsenal(9, 12, "NORTH")
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
         # Place cavalry close enough to be connected via infantry's network coverage
         board.create_and_place_unit(11, 13, "CAVALRY", "NORTH")
@@ -294,11 +289,11 @@ class TestUnitMovementRange:
         assert get_movement_range(unit) == 2
         assert can_move(unit) is True
 
-    def test_arsenal_range(self):
-        """Test Arsenal has range 0."""
-        unit = create_piece("ARSENAL", "NORTH")
-        assert get_movement_range(unit) == 0
-        assert can_move(unit) is False
+    def test_terrain_no_unit(self):
+        """Test that terrain (arsenal) doesn't have a unit to test."""
+        # Arsenals are terrain now, not units
+        # This test is removed since create_piece("ARSENAL") is invalid
+        pass
 
 
 class TestBoardEdgeCases:
@@ -443,7 +438,7 @@ class TestMovementIntegration:
         board = Board()
         # Add arsenal and multiple relays to ensure continuous network coverage (0.2.0 network system)
         # Relays create a network path for cavalry to move through
-        board.create_and_place_unit(9, 12, "ARSENAL", "NORTH")
+        board.set_arsenal(9, 12, "NORTH")
         board.create_and_place_unit(10, 13, "RELAY", "NORTH")
         board.create_and_place_unit(11, 14, "RELAY", "NORTH")
         board.create_and_place_unit(10, 12, "CAVALRY", "NORTH")
@@ -462,11 +457,11 @@ class TestMovementIntegration:
         """Test movement in crowded area with many units."""
         board = Board()
 
-        # Create a cluster of units
+        # Create a cluster of units (arsenal as terrain)
+        board.set_arsenal(11, 13, "NORTH")
         board.create_and_place_unit(10, 12, "INFANTRY", "NORTH")
         board.create_and_place_unit(10, 13, "CAVALRY", "NORTH")
         board.create_and_place_unit(11, 12, "CANNON", "NORTH")
-        board.create_and_place_unit(11, 13, "ARSENAL", "NORTH")
 
         # Center unit has limited moves
         moves = generate_moves(board, 10, 12)
@@ -540,13 +535,12 @@ class TestBoundaryValues:
     """Systematic testing of boundary values."""
 
     def test_movement_range_0(self):
-        """Test movement range 0 (Arsenal)."""
+        """Test movement range 0 (Arsenal as terrain, no unit)."""
         board = Board()
-        board.create_and_place_unit(10, 12, "ARSENAL", "NORTH")
+        board.set_arsenal(10, 12, "NORTH")
 
-        assert get_movement_range(board.get_unit(10, 12)) == 0
-        assert can_move(board.get_unit(10, 12)) is False
-        assert len(generate_moves(board, 10, 12)) == 0
+        # No unit at arsenal position (it's terrain now)
+        assert board.get_unit(10, 12) is None
 
     def test_movement_range_1(self):
         """Test movement range 1 (Infantry)."""
@@ -597,7 +591,6 @@ class TestAllUnitTypesParametrized:
         ("SWIFT_CANNON", 2, 24),
         ("RELAY", 1, 8),
         ("SWIFT_RELAY", 2, 24),
-        ("ARSENAL", 0, 0),
     ])
     def test_unit_movement_range_and_max_moves(self, unit_type, expected_range, expected_max_moves):
         """Test all unit types have correct movement range and max moves from center."""
@@ -612,7 +605,7 @@ class TestAllUnitTypesParametrized:
         assert len(moves) == expected_max_moves
 
     @pytest.mark.parametrize("unit_type", [
-        "INFANTRY", "CAVALRY", "CANNON", "SWIFT_CANNON", "RELAY", "SWIFT_RELAY", "ARSENAL"
+        "INFANTRY", "CAVALRY", "CANNON", "SWIFT_CANNON", "RELAY", "SWIFT_RELAY"
     ])
     def test_unit_cannot_move_to_same_square(self, unit_type):
         """Test all unit types cannot move to same square."""

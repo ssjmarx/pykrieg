@@ -63,6 +63,7 @@ class BoardDisplay:
         }
 
         # Curses color pairs (only initialized in CURSES mode)
+        # These are the single source of truth for all color constants
         if self.mode == DisplayMode.CURSES:
             self.COLOR_NORTH = 1      # Magenta for North units
             self.COLOR_SOUTH = 2      # Cyan for South units
@@ -74,8 +75,8 @@ class BoardDisplay:
             self.COLOR_DEFENSE_BG = 8  # Blue background for defense
             self.COLOR_BLOCKED_BG = 9   # Gray background for blocked units
             self.COLOR_CHARGING_BG = 10  # Gold background for charging cavalry
-            self.COLOR_TERRAIN_DARK = 11   # Dark green for empty terrain outside LOC
-            self.COLOR_TERRAIN_LIGHT = 12  # Light green for empty terrain inside LOC
+            self.COLOR_TERRAIN_DARK = 11   # Dark green for empty terrain inside LOC
+            self.COLOR_TERRAIN_LIGHT = 12  # Dark gray for empty terrain outside LOC
 
     def render(self, board: Board, stdscr: Optional["_curses.window"] = None) -> Optional[str]:
         """Render the complete board display.
@@ -159,6 +160,7 @@ class BoardDisplay:
         for col in range(board.cols):
             x_pos = 3 + (col * 2)
             unit = board.get_unit(row, col)
+            terrain = board.get_terrain(row, col)
 
             highlights: dict = self.render_state.get('highlights', {})
             highlight = highlights.get((row, col))
@@ -166,39 +168,87 @@ class BoardDisplay:
             if highlight:
                 # Render with background color
                 self._render_curses_cell_highlight(stdscr, x_pos, y_pos, unit, highlight, board)
-            elif unit is None:
-                # Empty cell (terrain) - color based on LOC status
-                in_loc = board.is_unit_online(row, col, board.turn)
-                # Swapped: Dark = LOC-covered (your territory), Light = non-LOC (available)
-                color = self.COLOR_TERRAIN_DARK if in_loc else self.COLOR_TERRAIN_LIGHT
-                stdscr.addstr(y_pos, x_pos, "·", curses.color_pair(color))
-            else:
-                # Unit with player color
-                owner = getattr(unit, 'owner', None)
-                color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
+                continue
 
-                # Check if unit is online (for curses mode)
-                if owner is None:
-                    is_online = True  # Fallback if no owner
+            # Handle terrain rendering
+            if terrain:
+                terrain_color = self._get_terrain_color(board, row, col, terrain)
+                
+                if terrain == "MOUNTAIN":
+                    # Mountain - never occupied
+                    stdscr.addstr(y_pos, x_pos, self._get_terrain_glyph_curses(terrain), 
+                                 curses.color_pair(terrain_color))
+                    stdscr.addstr(y_pos, x_pos + 1, " ")
+                elif terrain in ("MOUNTAIN_PASS", "FORTRESS", "ARSENAL"):
+                    # Pass, Fortress, or Arsenal - can be occupied or empty
+                    if unit:
+                        # Occupied terrain - render with brackets
+                        owner = getattr(unit, 'owner', None)
+                        is_online = board.is_unit_online(row, col, owner) if owner else True
+                        unit_color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
+                        unit_glyph = self._get_unit_glyph(unit, is_online)
+                        
+                        # Opening bracket with terrain color
+                        bracket_color = terrain_color
+                        opening_bracket = "{" if terrain == "ARSENAL" else ("(" if terrain == "MOUNTAIN_PASS" else "[")
+                        
+                        # Render: bracket + unit (no closing bracket for arsenal)
+                        stdscr.addstr(y_pos, x_pos, opening_bracket, curses.color_pair(bracket_color))
+                        
+                        # Check for swift unit
+                        unit_type = getattr(unit, 'unit_type', '').upper()
+                        is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
+                        
+                        if is_swift_unit:
+                            # Swift unit: unit glyph + star
+                            stdscr.addstr(y_pos, x_pos + 1, unit_glyph, curses.color_pair(unit_color))
+                        else:
+                            # Regular unit: unit glyph
+                            stdscr.addstr(y_pos, x_pos + 1, unit_glyph, curses.color_pair(unit_color))
+                    else:
+                        # Empty terrain
+                        stdscr.addstr(y_pos, x_pos, self._get_terrain_glyph_curses(terrain), 
+                                     curses.color_pair(terrain_color))
+                        stdscr.addstr(y_pos, x_pos + 1, " ")
+            else:
+                # No terrain - normal rendering
+                if unit is None:
+                    # Empty cell - color based on RAY coverage ONLY (not proximity)
+                    # This ensures only ray-cast squares are green, not proximity-covered squares
+                    in_ray = board.is_ray_covered(row, col, board.turn)
+                    # Dark = ray-covered, Light = not ray-covered
+                    color = self.COLOR_TERRAIN_DARK if in_ray else self.COLOR_TERRAIN_LIGHT
+                    # Apply DIM attribute for dark gray to distinguish from south player color
+                    attrs = curses.A_DIM if color == self.COLOR_TERRAIN_LIGHT else 0
+                    stdscr.addstr(y_pos, x_pos, "·", curses.color_pair(color) | attrs)
+                    stdscr.addstr(y_pos, x_pos + 1, " ", curses.color_pair(color) | attrs)
                 else:
-                    is_online = board.is_unit_online(row, col, owner)
+                    # Unit with player color
+                    owner = getattr(unit, 'owner', None)
+                    color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
 
-                # Get appropriate glyph based on online status
-                char = self._get_unit_glyph(unit, is_online)
-                stdscr.addstr(y_pos, x_pos, char, curses.color_pair(color))
+                    # Check if unit is online (for curses mode)
+                    if owner is None:
+                        is_online = True  # Fallback if no owner
+                    else:
+                        is_online = board.is_unit_online(row, col, owner)
 
-            # Space after cell - check if this is a swift unit and add star
-            unit_type = getattr(unit, 'unit_type', '').upper() if unit else ''
-            is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
+                    # Get appropriate glyph based on online status
+                    char = self._get_unit_glyph(unit, is_online)
+                    stdscr.addstr(y_pos, x_pos, char, curses.color_pair(color))
 
-            if is_swift_unit:
-                owner = getattr(unit, 'owner', None) if unit else None
-                color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
-                # Render star in the space position
-                stdscr.addstr(y_pos, x_pos + 1, "★", curses.color_pair(color))
-            else:
-                # Regular space for non-swift units
-                stdscr.addstr(y_pos, x_pos + 1, " ")
+                    # Space after cell - check if this is a swift unit and add star
+                    unit_type = getattr(unit, 'unit_type', '').upper()
+                    is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
+
+                    if is_swift_unit:
+                        owner = getattr(unit, 'owner', None)
+                        color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
+                        # Render star in the space position
+                        stdscr.addstr(y_pos, x_pos + 1, "★", curses.color_pair(color))
+                    else:
+                        # Regular space for non-swift units
+                        stdscr.addstr(y_pos, x_pos + 1, " ")
 
         # Right row letter
         right_row_x = 3 + (board.cols * 2) + 1
@@ -221,6 +271,7 @@ class BoardDisplay:
             y: Y position
             unit: Unit at cell (or None)
             highlight_type: Type of highlight
+            board: The game board (needed for terrain info)
         """
         # Get background color pair
         if highlight_type == 'selected':
@@ -238,45 +289,94 @@ class BoardDisplay:
         else:
             return
 
-        # Get cell content
-        if unit is None:
-            text = "·"
-        elif board:
-            # Check if unit is online (for curses mode) using board's method
-            owner = getattr(unit, 'owner', None)
-            # Find unit position from board state
-            is_online = True
-            if owner is None:
-                # No owner - assume online
-                pass
-            else:
-                for row in range(board.rows):
-                    for col in range(board.cols):
-                        if board.get_unit(row, col) == unit:
-                            is_online = board.is_unit_online(row, col, owner)
-                            break
-                    if not is_online:  # Found unit and it's offline
+        # Find unit position to get terrain info
+        terrain = None
+        if board:
+            for row in range(board.rows):
+                for col in range(board.cols):
+                    if board.get_unit(row, col) == unit or (unit is None and board.get_terrain(row, col)):
+                        terrain = board.get_terrain(row, col)
                         break
-            text = self._get_unit_glyph(unit, is_online)
+                if terrain is not None or unit is not None:
+                    break
+
+        # Handle terrain in highlighted cells
+        if terrain:
+            if terrain == "MOUNTAIN":
+                # Mountain with highlight background
+                stdscr.addstr(y, x, self._get_terrain_glyph_curses(terrain), 
+                             curses.color_pair(bg_pair))
+                stdscr.addstr(y, x + 1, " ", curses.color_pair(bg_pair))
+            elif terrain in ("MOUNTAIN_PASS", "FORTRESS"):
+                # Pass or Fortress with highlight background
+                if unit:
+                    # Occupied terrain with brackets and highlight
+                    owner = getattr(unit, 'owner', None)
+                    is_online = board.is_unit_online(row, col, owner) if board and owner else True
+                    unit_color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
+                    unit_glyph = self._get_unit_glyph(unit, is_online)
+                    
+                    opening_bracket = "(" if terrain == "MOUNTAIN_PASS" else "["
+                    
+                    # Render: bracket (highlight bg) + unit (highlight bg)
+                    stdscr.addstr(y, x, opening_bracket, curses.color_pair(bg_pair))
+                    
+                    # Check for swift unit
+                    unit_type = getattr(unit, 'unit_type', '').upper()
+                    is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
+                    
+                    if is_swift_unit:
+                        # Swift unit: unit glyph + star (both with highlight bg)
+                        stdscr.addstr(y, x + 1, unit_glyph, curses.color_pair(bg_pair))
+                    else:
+                        # Regular unit: unit glyph with highlight bg
+                        stdscr.addstr(y, x + 1, unit_glyph, curses.color_pair(bg_pair))
+                else:
+                    # Empty terrain with highlight
+                    stdscr.addstr(y, x, self._get_terrain_glyph_curses(terrain), 
+                                 curses.color_pair(bg_pair))
+                    stdscr.addstr(y, x + 1, " ", curses.color_pair(bg_pair))
         else:
-            # Fallback if no board provided
-            text = self._get_unit_glyph(unit, online=True)
+            # No terrain - normal highlight rendering
+            # Get cell content
+            if unit is None:
+                text = "·"
+            elif board:
+                # Check if unit is online (for curses mode) using board's method
+                owner = getattr(unit, 'owner', None)
+                # Find unit position from board state
+                is_online = True
+                if owner is None:
+                    # No owner - assume online
+                    pass
+                else:
+                    for row in range(board.rows):
+                        for col in range(board.cols):
+                            if board.get_unit(row, col) == unit:
+                                is_online = board.is_unit_online(row, col, owner)
+                                break
+                        if not is_online:  # Found unit and it's offline
+                            break
+                text = self._get_unit_glyph(unit, is_online)
+            else:
+                # Fallback if no board provided
+                text = self._get_unit_glyph(unit, online=True)
 
-        # Render with background color
-        stdscr.addstr(y, x, text, curses.color_pair(bg_pair))
+            # Render with background color
+            stdscr.addstr(y, x, text, curses.color_pair(bg_pair))
 
-        # Check if this is a swift unit and add star after cell
-        unit_type = getattr(unit, 'unit_type', '').upper() if unit else ''
-        is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
+            # Check if this is a swift unit and add star after cell
+            unit_type = getattr(unit, 'unit_type', '').upper() if unit else ''
+            is_swift_unit = unit_type in ('SWIFT_CANNON', 'SWIFT_RELAY')
 
-        if is_swift_unit:
-            owner = getattr(unit, 'owner', None) if unit else None
-            color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
-            # Render star in space position with same color as unit
-            stdscr.addstr(y, x + 1, "★", curses.color_pair(color))
-        else:
-            # Regular space for non-swift units
-            stdscr.addstr(y, x + 1, " ")
+            if is_swift_unit:
+                owner = getattr(unit, 'owner', None) if unit else None
+                color = self.COLOR_NORTH if owner == "NORTH" else self.COLOR_SOUTH
+                # Render star in space position with same color as unit
+                stdscr.addstr(y, x + 1, "★", curses.color_pair(color))
+            else:
+                # Regular space for non-swift units
+                stdscr.addstr(y, x + 1, " ")
 
     def _get_column_headers_text(self) -> str:
         """Get column headers as plain text.
@@ -395,6 +495,128 @@ class BoardDisplay:
 
             return char
 
+    def _get_terrain_glyph_curses(self, terrain: Optional[str]) -> str:
+        """Get the terrain glyph for curses mode.
+
+        Args:
+            terrain: Terrain type string (MOUNTAIN, MOUNTAIN_PASS, FORTRESS, ARSENAL, or None)
+
+        Returns:
+            Unicode character representing the terrain
+        """
+        if terrain == "MOUNTAIN":
+            return "⛰"
+        elif terrain == "MOUNTAIN_PASS":
+            return "⛞"
+        elif terrain == "FORTRESS":
+            return "⚜"
+        elif terrain == "ARSENAL":
+            return "☗"  # Same as arsenal unit glyph
+        else:
+            return "·"  # Empty square
+
+    def _get_terrain_glyph_compat(self, terrain: Optional[str]) -> str:
+        """Get the terrain glyph for compatibility mode.
+
+        Args:
+            terrain: Terrain type string (MOUNTAIN, MOUNTAIN_PASS, FORTRESS, ARSENAL, or None)
+
+        Returns:
+            ASCII character representing the terrain
+        """
+        if terrain == "MOUNTAIN":
+            return "M"
+        elif terrain == "MOUNTAIN_PASS":
+            return "P"
+        elif terrain == "FORTRESS":
+            return "F"
+        elif terrain == "ARSENAL":
+            return "A"
+        else:
+            return "_"  # Empty square
+
+    def init_colors(self, stdscr: "_curses.window") -> None:
+        """Initialize curses color pairs.
+
+        Args:
+            stdscr: curses window object
+
+        This method initializes all color pairs used by the display system.
+        It should be called once at startup when curses mode is active.
+        """
+        if not curses:
+            return
+
+        curses.start_color()
+        curses.use_default_colors()
+
+        # Initialize color pairs (foreground, background)
+        curses.init_pair(self.COLOR_NORTH, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_SOUTH, curses.COLOR_CYAN, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_WHITE, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_GRAY, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+        # Background colors for highlights
+        curses.init_pair(self.COLOR_SELECTED_BG, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
+        curses.init_pair(self.COLOR_DEST_BG, curses.COLOR_BLACK, curses.COLOR_CYAN)
+        curses.init_pair(self.COLOR_ATTACK_BG, curses.COLOR_WHITE, curses.COLOR_RED)
+        curses.init_pair(self.COLOR_DEFENSE_BG, curses.COLOR_WHITE, curses.COLOR_BLUE)
+        curses.init_pair(self.COLOR_BLOCKED_BG, curses.COLOR_WHITE, curses.COLOR_WHITE)
+        curses.init_pair(self.COLOR_CHARGING_BG, curses.COLOR_WHITE, curses.COLOR_YELLOW)
+
+        # Terrain colors for empty squares
+        curses.init_pair(self.COLOR_TERRAIN_DARK, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(self.COLOR_TERRAIN_LIGHT, curses.COLOR_WHITE, curses.COLOR_BLACK)  # Dark gray with DIM attribute
+
+    def _get_terrain_color(
+        self,
+        board: Board,
+        row: int,
+        col: int,
+        terrain: Optional[str]
+    ) -> int:
+        """Get the color pair for terrain rendering.
+
+        Args:
+            board: The game board
+            row: Row number
+            col: Column number
+            terrain: Terrain type
+
+        Returns:
+            Color pair ID
+
+        Color rules:
+        - Mountains: always gray
+        - Passes: gray (outside ray coverage) or dark green (inside ray coverage)
+        - Forts: gray (outside ray coverage) or dark green (inside ray coverage)
+        - Arsenals: owning player color (North = magenta, South = cyan)
+        - Empty squares: dark green (ray-covered ONLY, not proximity) or dark gray (not ray-covered)
+
+        Note: Ray coverage is checked for the CURRENT player only (board.turn),
+        not for both players. For empty squares, we use ray coverage only,
+        not overall network coverage (which includes proximity).
+        """
+        if terrain == "MOUNTAIN":
+            # Mountains always gray
+            return self.COLOR_GRAY
+        elif terrain == "ARSENAL":
+            # Arsenals use owning player color
+            arsenal_owner = board.get_arsenal_owner(row, col)
+            return self.COLOR_NORTH if arsenal_owner == "NORTH" else self.COLOR_SOUTH
+        elif terrain in ("MOUNTAIN_PASS", "FORTRESS"):
+            # Passes and forts use dark green (ray covered) or gray (not ray covered)
+            in_loc = board.is_ray_covered(row, col, board.turn)
+            return self.COLOR_TERRAIN_DARK if in_loc else self.COLOR_GRAY
+        else:
+            # Empty squares use dark green (ray-covered ONLY) or dark gray (not ray-covered)
+            # For empty squares, we check ray coverage, NOT overall network coverage
+            # This ensures only ray-cast squares are green, not proximity-covered squares
+            in_loc = board.is_ray_covered(row, col, board.turn)
+            # For empty squares, we need to check if the square is ONLY ray-covered
+            # and not just proximity-covered. The is_ray_covered() method checks ray coverage.
+            return self.COLOR_TERRAIN_DARK if in_loc else self.COLOR_TERRAIN_LIGHT
+
     def _get_unit_char(self, unit: object) -> str:
         """Get character for unit (unicode in curses mode, ASCII in compat mode).
 
@@ -456,7 +678,25 @@ class BoardDisplay:
         # Row letter (right)
         cells.append(row_letter.rjust(2))
 
-        return " ".join(cells)
+        # Build row manually - add space after cells, but NOT after bracketed cells
+        row_parts = []
+        for i, cell in enumerate(cells):
+            row_parts.append(cell)
+            # Add space after cell, unless it's last one or a bracketed cell
+            if i < len(cells) - 1:
+                # Check if this cell (at column i-1 since we have left row header) is bracketed
+                # cells[0] is left row header, cells[-1] is right row header
+                # So actual board columns are cells[1:-1]
+                board_col_index = i - 1
+                if 0 <= board_col_index < board.cols:
+                    # Only add space if NOT a bracketed cell
+                    if not self._cell_has_bracket(board, row, board_col_index):
+                        row_parts.append(" ")
+                else:
+                    # Row headers - always add space
+                    row_parts.append(" ")
+
+        return "".join(row_parts)
 
     def _render_cell_compat(self, board: Board, row: int, col: int) -> str:
         """Render a single cell in compatibility mode.
@@ -467,16 +707,52 @@ class BoardDisplay:
             col: Column number (0-24)
 
         Returns:
-            String representation of the cell (ASCII)
+            String representation of cell (ASCII)
+
+        NOTE: Returns cell content. For occupied terrain, returns bracket + unit (no closing bracket).
+        The row renderer handles spacing appropriately.
         """
         unit = board.get_unit(row, col)
+        terrain = board.get_terrain(row, col)
 
+        # Handle terrain rendering
+        if terrain:
+            if terrain == "MOUNTAIN":
+                # Mountain - never occupied
+                return "M"
+            elif terrain in ("MOUNTAIN_PASS", "FORTRESS", "ARSENAL"):
+                # Pass, Fortress, or Arsenal - can be occupied or empty
+                if unit:
+                    # Occupied terrain - render with opening bracket + unit
+                    # NO closing bracket - this is a 2-char cell
+                    unit_char = self._get_unit_char(unit)
+                    opening_bracket = "{" if terrain == "ARSENAL" else ("(" if terrain == "MOUNTAIN_PASS" else "[")
+                    return f"{opening_bracket}{unit_char}"
+                else:
+                    # Empty terrain - 1 char cell
+                    return self._get_terrain_glyph_compat(terrain)
+        
+        # No terrain - normal rendering (1 char cell)
         if unit is None:
-            # Render terrain only
             return "_"
         else:
-            # Render unit
             return self._get_unit_char(unit)
+    
+    def _cell_has_bracket(self, board: Board, row: int, col: int) -> bool:
+        """Check if cell has a bracket (occupied terrain).
+        
+        Args:
+            board: The game board
+            row: Row number (0-19)
+            col: Column number (0-24)
+            
+        Returns:
+            True if cell is occupied terrain with bracket
+        """
+        terrain = board.get_terrain(row, col)
+        if terrain in ("MOUNTAIN_PASS", "FORTRESS", "ARSENAL"):
+            return board.get_unit(row, col) is not None
+        return False
 
     def _calculate_cell_positions(self, board: Board) -> None:
         """Calculate screen positions for all board cells.

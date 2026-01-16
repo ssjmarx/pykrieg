@@ -53,23 +53,33 @@ class Board:
         # New for 0.1.4: Per-turn tracking
         self._moved_units: Set[Tuple[int, int]] = set()  # Positions units moved FROM this turn
         self._moved_unit_ids: Set[int] = set()  # IDs of units that moved this turn
+        self._moves_made: List[Tuple[int, int, int, int]] = []  # Complete moves: [(from_row, from_col, to_row, to_col), ...]
         self._attacks_this_turn: int = 0  # Attacks made this turn
+        self._attack_target: Optional[Tuple[int, int]] = None  # Target square attacked this turn
 
         # New for 0.2.0: Lines of Communication (LOC) network tracking
         self._terrain: List[List[Optional[str]]] = [[None for _ in range(self._cols)]
                                                      for _ in range(self._rows)]
         self._active_north: Set[Tuple[int, int]] = set()  # Active units for North
         self._active_south: Set[Tuple[int, int]] = set()  # Active units for South
+        # New for 0.2.1: Arsenals are terrain, not units
+        self._arsenal_owners: Dict[Tuple[int, int], str] = {}  # Maps (row, col) -> player
         self._relay_online_status: Dict[Tuple[int, int], bool] = {}  # Track relay online status
         self._proximity_checked: Set[
             Tuple[int, int]
         ] = set()  # Track squares proximity-checked this cycle
         self._network_coverage_north: Set[
             Tuple[int, int]
-        ] = set()  # All squares covered by North's network
+        ] = set()  # All squares covered by North's network (rays + proximity)
         self._network_coverage_south: Set[
             Tuple[int, int]
-        ] = set()  # All squares covered by South's network
+        ] = set()  # All squares covered by South's network (rays + proximity)
+        self._ray_coverage_north: Set[
+            Tuple[int, int]
+        ] = set()  # Squares covered by North's arsenal/relay rays only (for display)
+        self._ray_coverage_south: Set[
+            Tuple[int, int]
+        ] = set()  # Squares covered by South's arsenal/relay rays only (for display)
         self._network_calculated: bool = False  # Flag if calculate_network() was called
         self._network_dirty: bool = True  # Flag for lazy recalculation - network needs update
 
@@ -734,6 +744,14 @@ class Board:
         """
         return self._attacks_this_turn
 
+    def get_attack_target(self) -> Optional[Tuple[int, int]]:
+        """Get attack target square for current turn.
+
+        Returns:
+            Tuple (row, col) of target, or None if no attack/pass yet
+        """
+        return self._attack_target
+
     def can_attack_more(self) -> bool:
         """Check if player can attack more this turn.
 
@@ -837,9 +855,10 @@ class Board:
         from .movement import execute_move
         moved_unit = execute_move(self, from_row, from_col, to_row, to_col)
 
-        # Track move - both position and unit ID
+        # Track move - both position and unit ID, plus complete move tuple
         self._moved_units.add((from_row, from_col))
         self._moved_unit_ids.add(unit_id)
+        self._moves_made.append((from_row, from_col, to_row, to_col))
 
         # Clear retreat flag if this was a retreat move
         if (from_row, from_col) in self._units_must_retreat:
@@ -926,17 +945,19 @@ class Board:
             # Mark defender for retreat
             self.add_pending_retreat(target_row, target_col)
 
-        # Track attack
+        # Track attack and target
         self._attacks_this_turn += 1
+        self._attack_target = (target_row, target_col)
 
         return result
 
     def pass_attack(self) -> None:
-        """Pass the attack phase.
+        """Pass attack phase.
 
         This method:
-        1. Validates it's the battle phase
+        1. Validates it's battle phase
         2. Marks that an attack has been made (pass counts)
+        3. Records pass state for KFEN serialization (attack_target = None)
 
         Raises:
             ValueError: If not in battle phase or already attacked
@@ -948,6 +969,7 @@ class Board:
             raise ValueError("Cannot pass attack: already attacked")
 
         self._attacks_this_turn += 1
+        self._attack_target = None  # Pass = no target
 
     def switch_to_battle_phase(self) -> None:
         """Switch from movement phase to battle phase.
@@ -1050,7 +1072,9 @@ class Board:
         # Clear per-turn state for new player
         self._moved_units.clear()
         self._moved_unit_ids.clear()
+        self._moves_made.clear()  # Clear complete move history
         self._attacks_this_turn = 0
+        self._attack_target = None  # Clear attack target
 
         # Resolve retreats for new player and capture any that have no valid retreat
         return self.resolve_retreats()
@@ -1076,7 +1100,9 @@ class Board:
         """
         self._moved_units.clear()
         self._moved_unit_ids.clear()
+        self._moves_made.clear()  # Clear complete move history
         self._attacks_this_turn = 0
+        self._attack_target = None  # Clear attack target
         self._current_phase = constants.PHASE_MOVEMENT
 
     # Turn tracking methods
@@ -1123,7 +1149,7 @@ class Board:
         Args:
             row: Row coordinate (0-19)
             col: Column coordinate (0-24)
-            terrain: Terrain type (None, 'MOUNTAIN', 'MOUNTAIN_PASS', 'FORTRESS')
+            terrain: Terrain type (None, 'MOUNTAIN', 'MOUNTAIN_PASS', 'FORTRESS', 'ARSENAL')
 
         Raises:
             ValueError: If coordinates are invalid or terrain type is invalid
@@ -1260,15 +1286,70 @@ class Board:
             List of (row, col) tuples
         """
         arsenals = []
-        for row in range(self._rows):
-            for col in range(self._cols):
-                unit = self._board[row][col]
-                if unit:
-                    unit_type = getattr(unit, 'unit_type', None)
-                    owner = getattr(unit, 'owner', None)
-                    if unit_type == constants.UNIT_ARSENAL and owner == player:
-                        arsenals.append((row, col))
+        for (row, col), owner in self._arsenal_owners.items():
+            if owner == player:
+                arsenals.append((row, col))
         return arsenals
+
+    def set_arsenal(self, row: int, col: int, owner: str) -> None:
+        """Set arsenal terrain with owner.
+
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+            owner: 'NORTH' or 'SOUTH'
+
+        Raises:
+            ValueError: If coordinates are invalid or owner is invalid
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+
+        if owner not in (constants.PLAYER_NORTH, constants.PLAYER_SOUTH):
+            raise ValueError(f"Invalid owner: {owner}")
+
+        self._terrain[row][col] = constants.TERRAIN_ARSENAL
+        self._arsenal_owners[(row, col)] = owner
+        self._network_dirty = True  # Mark network as needing recalculation
+
+    def get_arsenal_owner(self, row: int, col: int) -> Optional[str]:
+        """Get owner of arsenal at given coordinates.
+
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+
+        Returns:
+            'NORTH', 'SOUTH', or None if no arsenal
+
+        Raises:
+            ValueError: If coordinates are invalid
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+
+        terrain = self._terrain[row][col]
+        if terrain == constants.TERRAIN_ARSENAL:
+            return self._arsenal_owners.get((row, col))
+        return None
+
+    def remove_arsenal(self, row: int, col: int) -> None:
+        """Remove arsenal from square.
+
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+
+        Raises:
+            ValueError: If coordinates are invalid
+        """
+        if not self.is_valid_square(row, col):
+            raise ValueError(f"Invalid coordinates: ({row}, {col})")
+
+        self._terrain[row][col] = None
+        if (row, col) in self._arsenal_owners:
+            del self._arsenal_owners[(row, col)]
+        self._network_dirty = True  # Mark network as needing recalculation
 
     def _get_unpropagated_relays(self, player: str) -> List[Tuple[int, int]]:
         """Get all online relays/swift relays that haven't propagated yet.
@@ -1331,13 +1412,15 @@ class Board:
         if player == constants.PLAYER_NORTH:
             self._active_north.clear()
             self._network_coverage_north.clear()
+            self._ray_coverage_north.clear()
         else:
             self._active_south.clear()
             self._network_coverage_south.clear()
+            self._ray_coverage_south.clear()
 
         # Only clear relay_online_status when recalculating for both players
         # This is handled in _ensure_network_calculated()
-        # Don't clear it here to preserve the other player's relay status
+        # Don't clear it here to preserve other player's relay status
         self._proximity_checked.clear()
 
     # Ray-casting algorithm
@@ -1379,6 +1462,11 @@ class Board:
                 # Mountain passes and fortresses don't block
                 # Mark empty square as covered by network
                 self._mark_square_covered(y, x, player)
+                # Also mark in ray coverage for display purposes
+                if player == constants.PLAYER_NORTH:
+                    self._ray_coverage_north.add((y, x))
+                else:
+                    self._ray_coverage_south.add((y, x))
                 continue
 
             # Case 2: Friendly unit - activate and continue (except relays may stop)
@@ -1387,6 +1475,13 @@ class Board:
 
             if current_owner == player:
                 self._mark_unit_active(y, x, player)
+
+                # Also mark the square as ray-covered for display purposes
+                # This ensures occupied terrain squares (fortresses, passes) show correct colors
+                if player == constants.PLAYER_NORTH:
+                    self._ray_coverage_north.add((y, x))
+                else:
+                    self._ray_coverage_south.add((y, x))
 
                 # If it's a relay/swift relay, activate it and continue
                 if current_type in (constants.UNIT_RELAY, constants.UNIT_SWIFT_RELAY):
@@ -1486,16 +1581,31 @@ class Board:
 
                 adj_unit = self.get_unit(adj_row, adj_col)
 
-                # Skip if no piece, wrong player, or already active
+                # Case 1: Empty square - mark as covered by network
+                # This allows units with movement range 2+ to move through empty squares
+                # adjacent to friendly units (fixes path validation bug)
+                # BUT mountains block proximity propagation too
                 if adj_unit is None:
-                    continue
-                adj_owner = getattr(adj_unit, 'owner', None)
-                if adj_owner != player:
-                    continue
-                if self._is_unit_active(adj_row, adj_col, player):
+                    # Check terrain before marking as covered
+                    adj_terrain = self._terrain[adj_row][adj_col]
+                    if adj_terrain == constants.TERRAIN_MOUNTAIN:
+                        # Mountain terrain - not covered by proximity
+                        continue
+                    # Passable terrain (None, MOUNTAIN_PASS, FORTRESS, ARSENAL)
+                    self._mark_square_covered(adj_row, adj_col, player)
                     continue
 
-                # Activate adjacent unit
+                # Case 2: Square has a unit
+                adj_owner = getattr(adj_unit, 'owner', None)
+                if adj_owner != player:
+                    # Enemy unit - skip
+                    continue
+
+                if self._is_unit_active(adj_row, adj_col, player):
+                    # Already active - skip
+                    continue
+
+                # Activate adjacent friendly unit
                 self._mark_unit_active(adj_row, adj_col, player)
                 new_units_activated = True
 
@@ -1764,3 +1874,41 @@ class Board:
                         active_relays.add((row, col))
 
         return active_relays
+
+    def is_ray_covered(self, row: int, col: int, player: str) -> bool:
+        """Check if a square is covered by arsenal/relay rays only (for display).
+
+        This method is used by display code to determine which squares should be
+        shown as green (online via rays) vs grey (online only via proximity).
+
+        Args:
+            row: Row coordinate (0-19)
+            col: Column coordinate (0-24)
+            player: 'NORTH' or 'SOUTH'
+
+        Returns:
+            True if square is covered by arsenal/relay rays, False otherwise
+
+        Note:
+            - This is purely for visual representation purposes
+            - Does not affect game mechanics (movement, combat, etc.)
+            - Use is_unit_online() for game mechanic queries
+            - Returns True for squares covered by ray propagation (steps 1 and 2)
+            - Returns False for squares only covered by proximity propagation (step 3)
+
+        Example:
+            >>> board = Board()
+            >>> board.set_arsenal(10, 10, 'NORTH')
+            >>> board.enable_networks()
+            >>> # Square covered by arsenal ray will be ray_covered
+            >>> board.is_ray_covered(10, 15, 'NORTH')  # True
+            >>> # Square covered only by proximity won't be ray_covered
+            >>> board.is_ray_covered(11, 14, 'NORTH')  # False
+            >>> # But it's still online for game mechanics
+            >>> board.is_unit_online(11, 14, 'NORTH')  # True
+        """
+        self._ensure_network_calculated()  # Lazy recalculation if needed
+        if player == constants.PLAYER_NORTH:
+            return (row, col) in self._ray_coverage_north
+        else:
+            return (row, col) in self._ray_coverage_south

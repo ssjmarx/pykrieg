@@ -223,7 +223,7 @@ def _parse_save_command(parts: list) -> Command:
         filename = parts[1]
     else:
         # Default filename
-        filename = f"pykrieg_save_{parts[0]}.fen"
+        filename = "pykrieg_save.fen"
 
     return Command(CommandType.SAVE, {"filename": filename})
 

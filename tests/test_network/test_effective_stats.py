@@ -4,7 +4,6 @@
 from pykrieg.board import Board
 from pykrieg.constants import (
     PLAYER_NORTH,
-    UNIT_ARSENAL,
     UNIT_CAVALRY,
     UNIT_INFANTRY,
     UNIT_RELAY,
@@ -64,7 +63,7 @@ class TestEffectiveStats:
         """Test that online infantry has full stats."""
         board = Board()
 
-        board.create_and_place_unit(5, 5, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(5, 5, PLAYER_NORTH)
         board.create_and_place_unit(6, 5, UNIT_INFANTRY, PLAYER_NORTH)
         board.enable_networks()
 

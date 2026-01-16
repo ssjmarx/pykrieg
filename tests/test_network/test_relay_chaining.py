@@ -2,7 +2,7 @@
 
 
 from pykrieg.board import Board
-from pykrieg.constants import PLAYER_NORTH, UNIT_ARSENAL, UNIT_INFANTRY, UNIT_RELAY
+from pykrieg.constants import PLAYER_NORTH, UNIT_INFANTRY, UNIT_RELAY
 
 
 class TestRelayChaining:
@@ -20,7 +20,7 @@ class TestRelayChaining:
         board = Board()
 
         # Place arsenal at (1, 1)
-        board.create_and_place_unit(1, 1, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(1, 1, PLAYER_NORTH)
 
         # Place first relay at (1, 5) - should be activated by arsenal's east ray
         board.create_and_place_unit(1, 5, UNIT_RELAY, PLAYER_NORTH)
@@ -57,7 +57,7 @@ class TestRelayChaining:
         board = Board()
 
         # Place arsenal
-        board.create_and_place_unit(2, 2, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(2, 2, PLAYER_NORTH)
 
         # Chain of relays
         board.create_and_place_unit(2, 6, UNIT_RELAY, PLAYER_NORTH)

@@ -1,14 +1,16 @@
 """Unit type system for Pykrieg.
 
-This module implements the complete unit type system with 7 unit types
-(Infantry, Cavalry, Cannon, Arsenal, Relay, Swift Cannon, Swift Relay),
+This module implements complete unit type system with 6 unit types
+(Infantry, Cavalry, Cannon, Relay, Swift Cannon, Swift Relay),
 each with their specific combat statistics from official rules.
+
+Note: Arsenals are terrain structures (not units) as of version 0.2.1.
+See Board.set_arsenal() for arsenal placement.
 
 Unit Statistics:
 - Infantry: Atk 4 / Def 6 / Move 1 / Range 2
 - Cavalry: Atk 4 / Def 5 / Move 2 / Range 2
 - Cannon: Atk 5 / Def 8 / Move 1 / Range 3
-- Arsenal: Atk 0 / Def 0 / Move 0 / Range None (immobile, no defense)
 - Relay: Atk 0 / Def 1 / Move 1 / Range 0
 - Swift Cannon: Atk 5 / Def 8 / Move 2 / Range 3
 - Swift Relay: Atk 0 / Def 1 / Move 2 / Range 0
@@ -268,15 +270,6 @@ class Cannon(Unit):
     range = 3
 
 
-class Arsenal(Unit):
-    """Arsenal structure: attack=0, defense=0, movement=0, range=None"""
-    unit_type = constants.UNIT_ARSENAL
-    attack = 0
-    defense = 0
-    movement = 0
-    range = None
-
-
 class Relay(Unit):
     """Relay unit: attack=0, defense=1, movement=1, range=0"""
     unit_type = constants.UNIT_RELAY
@@ -308,7 +301,7 @@ def create_piece(unit_type: str, owner: str) -> Unit:
     """Factory function to create unit instances from type strings.
 
     This is the recommended way to create units, as it validates
-    the unit_type and owner parameters.
+    unit_type and owner parameters.
 
     Args:
         unit_type: String representing unit type
@@ -319,6 +312,10 @@ def create_piece(unit_type: str, owner: str) -> Unit:
 
     Raises:
         ValueError: If unit_type or owner is invalid
+
+    Note:
+        Arsenal is no longer a unit type. Arsenals are now terrain structures.
+        Use Board.set_arsenal() to place an arsenal.
 
     Examples:
         >>> unit = create_piece("INFANTRY", "NORTH")
@@ -331,7 +328,6 @@ def create_piece(unit_type: str, owner: str) -> Unit:
         constants.UNIT_INFANTRY: Infantry,
         constants.UNIT_CAVALRY: Cavalry,
         constants.UNIT_CANNON: Cannon,
-        constants.UNIT_ARSENAL: Arsenal,
         constants.UNIT_RELAY: Relay,
         constants.UNIT_SWIFT_CANNON: SwiftCannon,
         constants.UNIT_SWIFT_RELAY: SwiftRelay,

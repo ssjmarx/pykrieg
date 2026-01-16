@@ -57,22 +57,24 @@ class TestFenSerialization:
         """Test board with pieces FEN roundtrip."""
         board1 = Board()
 
-        # Add pieces in various positions
+        # Add pieces in various positions (arsenals as terrain)
         pieces = [
             (0, 0, 'INFANTRY', 'NORTH'),
             (2, 5, 'CAVALRY', 'NORTH'),
             (4, 10, 'CANNON', 'NORTH'),
-            (6, 15, 'ARSENAL', 'NORTH'),
             (8, 20, 'RELAY', 'NORTH'),
             (19, 24, 'INFANTRY', 'SOUTH'),
             (17, 19, 'CAVALRY', 'SOUTH'),
             (15, 14, 'CANNON', 'SOUTH'),
-            (13, 9, 'ARSENAL', 'SOUTH'),
             (11, 4, 'RELAY', 'SOUTH'),
         ]
 
         for row, col, piece_type, owner in pieces:
             board1.set_piece(row, col, {'type': piece_type, 'owner': owner})
+
+        # Add arsenals as terrain
+        board1.set_arsenal(6, 15, 'NORTH')
+        board1.set_arsenal(13, 9, 'SOUTH')
 
         fen = Fen.board_to_fen(board1)
         board2 = Fen.fen_to_board(fen)
@@ -142,9 +144,9 @@ class TestFenSerialization:
         """Test FEN handles all piece types."""
         board1 = Board()
 
-        # Add one of each type for North and South
-        pieces_north = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
-        pieces_south = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+        # Add one of each type for North and South (excluding ARSENAL - now terrain)
+        pieces_north = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+        pieces_south = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
         col = 0
         for piece_type in pieces_north:
@@ -155,6 +157,10 @@ class TestFenSerialization:
         for piece_type in pieces_south:
             board1.set_piece(19, col, {'type': piece_type, 'owner': 'SOUTH'})
             col += 1
+
+        # Add arsenals as terrain
+        board1.set_arsenal(0, 6, 'NORTH')
+        board1.set_arsenal(19, 6, 'SOUTH')
 
         fen = Fen.board_to_fen(board1)
         board2 = Fen.fen_to_board(fen)
@@ -173,6 +179,10 @@ class TestFenSerialization:
             assert piece.unit_type == piece_type
             assert piece.owner == 'SOUTH'
             col += 1
+
+        # Verify arsenals
+        assert board2.get_arsenal_owner(0, 6) == 'NORTH'
+        assert board2.get_arsenal_owner(19, 6) == 'SOUTH'
 
     def test_fen_multiple_roundtrip(self):
         """Test multiple FEN roundtrips preserve state."""
@@ -228,7 +238,6 @@ class TestFenSerialization:
         assert Fen.PIECE_SYMBOLS['INFANTRY'] == 'I'
         assert Fen.PIECE_SYMBOLS['CAVALRY'] == 'C'
         assert Fen.PIECE_SYMBOLS['CANNON'] == 'K'
-        assert Fen.PIECE_SYMBOLS['ARSENAL'] == 'A'
         assert Fen.PIECE_SYMBOLS['RELAY'] == 'R'
         assert Fen.PIECE_SYMBOLS['SWIFT_CANNON'] == 'W'
         assert Fen.PIECE_SYMBOLS['SWIFT_RELAY'] == 'X'
@@ -236,7 +245,6 @@ class TestFenSerialization:
         assert Fen.SYMBOL_TO_PIECE['I'] == 'INFANTRY'
         assert Fen.SYMBOL_TO_PIECE['C'] == 'CAVALRY'
         assert Fen.SYMBOL_TO_PIECE['K'] == 'CANNON'
-        assert Fen.SYMBOL_TO_PIECE['A'] == 'ARSENAL'
         assert Fen.SYMBOL_TO_PIECE['R'] == 'RELAY'
         assert Fen.SYMBOL_TO_PIECE['W'] == 'SWIFT_CANNON'
         assert Fen.SYMBOL_TO_PIECE['X'] == 'SWIFT_RELAY'

@@ -5,7 +5,7 @@ import tempfile
 
 from pykrieg.board import Board
 from pykrieg.console.game import ConsoleGame
-from pykrieg.constants import PLAYER_NORTH, UNIT_ARSENAL, UNIT_INFANTRY, UNIT_RELAY
+from pykrieg.constants import PLAYER_NORTH, UNIT_INFANTRY, UNIT_RELAY
 from pykrieg.fen import Fen
 
 
@@ -13,11 +13,11 @@ def test_console_game_relay_chaining_via_fen():
     """Test relay-to-relay propagation by loading through ConsoleGame.
 
     This test creates a FEN file with relay chain, then loads it
-    through ConsoleGame to replicate the actual game initialization.
+    through ConsoleGame to replicate actual game initialization.
     """
-    # Create a board with relay chain
+    # Create a board with relay chain (arsenals as terrain)
     board = Board()
-    board.create_and_place_unit(1, 1, UNIT_ARSENAL, PLAYER_NORTH)
+    board.set_arsenal(1, 1, PLAYER_NORTH)
     board.create_and_place_unit(1, 5, UNIT_RELAY, PLAYER_NORTH)
     board.create_and_place_unit(5, 5, UNIT_RELAY, PLAYER_NORTH)
     board.create_and_place_unit(5, 20, UNIT_INFANTRY, PLAYER_NORTH)
@@ -55,8 +55,8 @@ def test_console_game_board_direct():
     # Create a ConsoleGame (it loads default position)
     game = ConsoleGame(display_mode='compatibility')
 
-    # Now manually set up relay chain on the game's board
-    game.board.create_and_place_unit(1, 1, UNIT_ARSENAL, PLAYER_NORTH)
+    # Now manually set up relay chain on game's board (arsenals as terrain)
+    game.board.set_arsenal(1, 1, PLAYER_NORTH)
     game.board.create_and_place_unit(1, 5, UNIT_RELAY, PLAYER_NORTH)
     game.board.create_and_place_unit(5, 5, UNIT_RELAY, PLAYER_NORTH)
     game.board.create_and_place_unit(5, 20, UNIT_INFANTRY, PLAYER_NORTH)

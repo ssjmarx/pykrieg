@@ -1,8 +1,8 @@
 """Movement system for Pykrieg.
 
 This module implements movement patterns for all unit types, generating
-pseudo-legal moves without considering terrain or lines of communication.
-Terrain restrictions and LOC will be added in 0.2.x series.
+pseudo-legal moves with terrain restrictions and without considering
+lines of communication.
 
 Movement uses Chebyshev distance (king moves in chess):
 - Movement range 1: 8 adjacent squares
@@ -329,17 +329,29 @@ def can_reach_square(board: Board, from_row: int, from_col: int,
                 continue
 
             # Check if square is passable
-            # Passable if: empty OR friendly unit
-            # Blocked if: enemy unit
+            # Passable if: empty OR friendly unit AND not mountain terrain
+            # Blocked if: enemy unit OR mountain terrain
             unit_at_square = board.get_unit(next_row, next_col)
             if unit_at_square is None:
-                # Empty square - passable
-                passable = True
+                # Empty square - check terrain
+                terrain = board.get_terrain(next_row, next_col)
+                if terrain == 'MOUNTAIN':
+                    # Mountain terrain - impassable
+                    passable = False
+                else:
+                    # Passable terrain (None, MOUNTAIN_PASS, FORTRESS)
+                    passable = True
             else:
                 unit_owner = getattr(unit_at_square, 'owner', None)
                 if unit_owner == player:
-                    # Friendly unit - passable
-                    passable = True
+                    # Friendly unit - check terrain
+                    terrain = board.get_terrain(next_row, next_col)
+                    if terrain == 'MOUNTAIN':
+                        # Mountain terrain - impassable (even for friendly units)
+                        passable = False
+                    else:
+                        # Passable terrain with friendly unit
+                        passable = True
                 else:
                     # Enemy unit - blocks path
                     passable = False

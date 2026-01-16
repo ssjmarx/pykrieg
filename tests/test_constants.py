@@ -21,11 +21,10 @@ def test_unit_types():
     assert constants.UNIT_INFANTRY == "INFANTRY"
     assert constants.UNIT_CAVALRY == "CAVALRY"
     assert constants.UNIT_CANNON == "CANNON"
-    assert constants.UNIT_ARSENAL == "ARSENAL"
     assert constants.UNIT_RELAY == "RELAY"
     assert constants.UNIT_SWIFT_CANNON == "SWIFT_CANNON"
     assert constants.UNIT_SWIFT_RELAY == "SWIFT_RELAY"
-    assert len(constants.ALL_UNIT_TYPES) == 7
+    assert len(constants.ALL_UNIT_TYPES) == 6
 
 
 def test_fen_symbols():
@@ -33,7 +32,6 @@ def test_fen_symbols():
     assert constants.FEN_INFANTRY == 'I'
     assert constants.FEN_CAVALRY == 'C'
     assert constants.FEN_CANNON == 'K'
-    assert constants.FEN_ARSENAL == 'A'
     assert constants.FEN_RELAY == 'R'
     assert constants.FEN_SWIFT_CANNON == 'W'
     assert constants.FEN_SWIFT_RELAY == 'X'
@@ -44,7 +42,6 @@ def test_fen_symbols_mapping():
     assert constants.FEN_SYMBOLS['INFANTRY'] == 'I'
     assert constants.FEN_SYMBOLS['CAVALRY'] == 'C'
     assert constants.FEN_SYMBOLS['CANNON'] == 'K'
-    assert constants.FEN_SYMBOLS['ARSENAL'] == 'A'
     assert constants.FEN_SYMBOLS['RELAY'] == 'R'
     assert constants.FEN_SYMBOLS['SWIFT_CANNON'] == 'W'
     assert constants.FEN_SYMBOLS['SWIFT_RELAY'] == 'X'
@@ -55,7 +52,6 @@ def test_symbol_to_unit_mapping():
     assert constants.SYMBOL_TO_UNIT['I'] == 'INFANTRY'
     assert constants.SYMBOL_TO_UNIT['C'] == 'CAVALRY'
     assert constants.SYMBOL_TO_UNIT['K'] == 'CANNON'
-    assert constants.SYMBOL_TO_UNIT['A'] == 'ARSENAL'
     assert constants.SYMBOL_TO_UNIT['R'] == 'RELAY'
     assert constants.SYMBOL_TO_UNIT['W'] == 'SWIFT_CANNON'
     assert constants.SYMBOL_TO_UNIT['X'] == 'SWIFT_RELAY'

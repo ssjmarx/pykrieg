@@ -23,7 +23,7 @@ class TestTurnStateTracking:
         """Test that moved units are tracked correctly."""
         board = Board()
         # Add arsenal so units are online (required for 0.2.0 network system)
-        board.create_and_place_unit(5, 0, "ARSENAL", "NORTH")
+        board.set_arsenal(5, 0, "NORTH")
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
         board.create_and_place_unit(5, 11, "CAVALRY", "NORTH")
 

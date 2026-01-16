@@ -25,6 +25,26 @@ from typing import Any, Dict, List, Optional, Tuple
 from .board import Board
 
 
+def get_terrain_defense_bonus(terrain: Optional[str]) -> int:
+    """Get defense bonus provided by terrain type.
+
+    Args:
+        terrain: Terrain type (None, 'MOUNTAIN', 'MOUNTAIN_PASS', 'FORTRESS')
+
+    Returns:
+        Defense bonus amount:
+        - None: 0
+        - MOUNTAIN: 0 (impassable, no combat there)
+        - MOUNTAIN_PASS: +2 (passable with defensive bonus)
+        - FORTRESS: +4 (passable with strong defensive bonus)
+    """
+    if terrain == 'MOUNTAIN_PASS':
+        return 2
+    elif terrain == 'FORTRESS':
+        return 4
+    return 0  # No terrain or MOUNTAIN (units can't be on mountains)
+
+
 class CombatOutcome(Enum):
     """Result of a combat calculation."""
     FAIL = "FAIL"
@@ -231,13 +251,20 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
     """Calculate total defense power for a target square.
 
     Defense power is sum of effective Defense stats of all defender's units
-    in direct lines supporting the target, including the unit at the target itself.
+    in direct lines supporting the target, including the unit at the target itself,
+    plus any terrain defense bonus.
 
     Range and Path Blocking Rules:
     - The unit at the target square always participates (being attacked)
     - Supporting units must be within their range to participate
     - Enemy units block the path to the target for supporting units
     - Friendly units do NOT block the path
+
+    Terrain Bonus (0.2.1):
+    - Mountain pass: +2 defense bonus
+    - Fortress: +4 defense bonus
+    - Terrain bonus applies to the target square only
+    - Terrain bonus applies even if no unit is present
 
     Note: Effective defense considers online/offline status (0.2.0)
     - Offline units have 0 defense (except relays, which always have defense)
@@ -254,15 +281,22 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
     """
     total_defense = 0
 
-    # First, check if there's a unit at the target square that belongs to defender
+    # Add terrain defense bonus for target square (0.2.1)
+    target_terrain = board.get_terrain(target_row, target_col)
+    terrain_bonus = get_terrain_defense_bonus(target_terrain)
+    total_defense += terrain_bonus
+
+    # First, check if there's a unit at target square that belongs to defender
     # The target unit always participates regardless of range or blocking
     target_unit = board.get_unit(target_row, target_col)
+    target_unit_processed = False
     if target_unit is not None and getattr(target_unit, 'owner', None) == defender:
         # Use effective defense (0.2.0) to account for online/offline status
         if hasattr(target_unit, 'get_effective_defense'):
             total_defense += target_unit.get_effective_defense(board)
         else:
             total_defense += getattr(target_unit, 'defense', 0)
+        target_unit_processed = True
 
     # Then add defense from units in all 8 directions supporting the target
     # Supporting units must be in range and have clear path
@@ -270,6 +304,10 @@ def calculate_defense_power(board: Board, target_row: int, target_col: int,
         units = get_line_units(board, target_row, target_col, direction, defender)
 
         for row, col, unit in units:
+            # Skip target unit (already counted above)
+            if target_unit_processed and (row, col) == (target_row, target_col):
+                continue
+            
             # Check range for supporting units
             if not is_unit_in_range(board, row, col, target_row, target_col):
                 continue  # Out of range
@@ -696,6 +734,7 @@ def preview_combat(board: Board, target_row: int, target_col: int,
     # Process defense units
     # First, check target unit (always participates)
     target_unit = board.get_unit(target_row, target_col)
+    target_unit_processed = False
     if target_unit is not None and getattr(target_unit, 'owner', None) == defender:
         if hasattr(target_unit, 'get_effective_defense'):
             defense_units.append((target_row, target_col, target_unit,
@@ -703,12 +742,17 @@ def preview_combat(board: Board, target_row: int, target_col: int,
         else:
             defense_units.append((target_row, target_col, target_unit,
                                getattr(target_unit, 'defense', 0)))
+        target_unit_processed = True
 
     # Then process supporting units
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, defender)
 
         for row, col, unit in units:
+            # Skip target unit (already counted above)
+            if target_unit_processed and (row, col) == (target_row, target_col):
+                continue
+            
             # Check range and path blocking
             if not is_unit_in_range(board, row, col, target_row, target_col):
                 blocked_defense_units.append((row, col, unit, "Out of range"))
@@ -745,6 +789,10 @@ def preview_combat(board: Board, target_row: int, target_col: int,
         if unit_type == 'CAVALRY':
             defending_cavalry_positions.append((row, col))
 
+    # Get terrain information (0.2.1)
+    target_terrain = board.get_terrain(target_row, target_col)
+    terrain_bonus = get_terrain_defense_bonus(target_terrain)
+
     return {
         'attack_power': attack_power,
         'defense_power': defense_power,
@@ -756,6 +804,8 @@ def preview_combat(board: Board, target_row: int, target_col: int,
         'defending_cavalry_positions': defending_cavalry_positions,
         'blocked_attack_units': blocked_attack_units,
         'blocked_defense_units': blocked_defense_units,
+        'target_terrain': target_terrain,  # Added in 0.2.1
+        'terrain_bonus': terrain_bonus,  # Added in 0.2.1
     }
 
 

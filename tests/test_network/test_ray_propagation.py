@@ -7,7 +7,6 @@ from pykrieg.constants import (
     PLAYER_SOUTH,
     TERRAIN_MOUNTAIN,
     TERRAIN_MOUNTAIN_PASS,
-    UNIT_ARSENAL,
     UNIT_INFANTRY,
     UNIT_RELAY,
     UNIT_SWIFT_RELAY,
@@ -22,7 +21,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal at center
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.enable_networks()
 
         # Check that squares in all directions are online
@@ -40,7 +39,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal at (10, 12)
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.enable_networks()
 
         # Check that edge squares are online
@@ -54,7 +53,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and enemy infantry
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_SOUTH)
         board.create_and_place_unit(10, 9, UNIT_INFANTRY, PLAYER_SOUTH)
 
@@ -70,7 +69,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and enemy relay with infantry beyond
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_RELAY, PLAYER_SOUTH)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_SOUTH)
 
@@ -86,7 +85,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and set mountain
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.set_terrain(10, 11, TERRAIN_MOUNTAIN)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_NORTH)
 
@@ -101,7 +100,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and set mountain pass
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.set_terrain(10, 11, TERRAIN_MOUNTAIN_PASS)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_NORTH)
 
@@ -116,7 +115,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and friendly infantry
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_INFANTRY, PLAYER_NORTH)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_NORTH)
 
@@ -131,7 +130,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and friendly relay with infantry beyond
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_RELAY, PLAYER_NORTH)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_NORTH)
 
@@ -147,7 +146,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and relay
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_RELAY, PLAYER_NORTH)
 
         # Place infantry in all 7 free directions from relay (skip (0, 1) which would overwrite arsenal)
@@ -166,7 +165,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and chain of relays
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_RELAY, PLAYER_NORTH)
         board.create_and_place_unit(10, 10, UNIT_RELAY, PLAYER_NORTH)
         board.create_and_place_unit(10, 9, UNIT_RELAY, PLAYER_NORTH)
@@ -188,7 +187,7 @@ class TestRayPropagation:
         board = Board()
 
         # Place arsenal and swift relay
-        board.create_and_place_unit(10, 12, UNIT_ARSENAL, PLAYER_NORTH)
+        board.set_arsenal(10, 12, PLAYER_NORTH)
         board.create_and_place_unit(10, 11, UNIT_SWIFT_RELAY, PLAYER_NORTH)
         board.create_and_place_unit(10, 10, UNIT_INFANTRY, PLAYER_NORTH)
 

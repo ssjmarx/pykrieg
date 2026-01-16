@@ -200,17 +200,6 @@ class ConsoleGame:
         if user_input is None:
             return
 
-        # Handle fallback to compatibility mode (terminal too small)
-        if user_input and user_input.startswith("__FALLBACK_TO_COMPAT__"):
-            # Switch to compatibility mode permanently
-            self.display_mode = DisplayMode.COMPATIBILITY
-            self.display = BoardDisplay(self.display_mode)
-            self.curses_input = None
-            # Extract actual input
-            user_input = user_input.replace("__FALLBACK_TO_COMPAT__", "")
-            # Re-render in compatibility mode
-            self._render()
-
         # Handle ESC key
         if user_input == "ESC":
             self.selected_cell = None
@@ -558,13 +547,6 @@ class ConsoleGame:
                     return False
                 self.logger.debug(f"Confirm result: {result}")
 
-                # Check if curses fell back to compat mode (terminal too small)
-                if result and result.startswith("__FALLBACK_TO_COMPAT__"):
-                    # User confirmed, now render in compat mode
-                    actual_answer = result.replace("__FALLBACK_TO_COMPAT__", "")
-                    self._render_compat_fallback()
-                    return actual_answer.lower() in ['y', 'yes']
-
                 return bool(result and result.lower() in ['y', 'yes'])
             except Exception as e:
                 self.logger.error(f"Curses confirm error: {e}", exc_info=True)
@@ -579,7 +561,6 @@ class ConsoleGame:
                 self.logger.debug(f"Compat confirm result: {response}")
 
                 # After compat mode input, always re-render to clear any leftover text
-                # This is important when curses fell back to compat mode
                 self._render()
 
                 return bool(response in ['y', 'yes'])
@@ -1162,6 +1143,20 @@ class ConsoleGame:
                 print("Error: Curses not available on this system")
                 print("Windows: Install 'windows-curses' package")
                 print("Linux/macOS: Curses should be built-in")
+                input("Press Enter to continue...")
+                self._render()
+                return
+
+            # Re-check terminal capabilities when switching to curses
+            from .terminal import detect_best_mode
+            current_best = detect_best_mode()
+            if current_best != 'curses':
+                print("Warning: Terminal does not currently support curses mode.")
+                print("This could be due to:")
+                print("  - Terminal too small (requires minimum 30 rows)")
+                print("  - Terminal doesn't support colors (requires minimum 8 colors)")
+                print("  - Curses library not available")
+                print("\nResize terminal or use 'mode compat' instead.")
                 input("Press Enter to continue...")
                 self._render()
                 return

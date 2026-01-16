@@ -78,19 +78,38 @@ def detect_best_mode() -> str:
 
     Detection logic (ALL OR NOTHING):
     1. Check if curses module is available
-    2. Check if terminal supports colors
-    3. If both true: return 'curses'
-    4. Otherwise: return 'compatibility'
+    2. Check if terminal supports colors (minimum 8 colors)
+    3. Check if terminal is large enough (minimum 30 rows)
+    4. If all true: return 'curses'
+    5. Otherwise: return 'compatibility'
 
     This runs ONCE at startup - no mid-game switching unless explicit.
+    Terminal size is only checked at startup, not during gameplay.
     """
     # Check curses availability
     try:
         import curses
         # Check if terminal supports colors
         curses.setupterm()
-        if curses.tigetnum('colors') >= 8:
+        if curses.tigetnum('colors') < 8:
+            return 'compatibility'
+        
+        # Check terminal size
+        # Initialize curses to get terminal size
+        stdscr = curses.initscr()
+        try:
+            height, width = stdscr.getmaxyx()
+            curses.endwin()
+            
+            # Minimum required: 30 rows (board 20 + headers + UI)
+            if height < 30:
+                return 'compatibility'
+            
+            # All checks passed - use curses mode
             return 'curses'
+        except Exception:
+            curses.endwin()
+            return 'compatibility'
     except Exception:
         pass
 

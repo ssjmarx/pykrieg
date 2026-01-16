@@ -1,10 +1,9 @@
 """Comprehensive test suite for Pykrieg unit type system.
 
-Tests cover all 7 unit types with correct statistics from official rules:
+Tests cover all 6 unit types with correct statistics from official rules:
 - Infantry: Atk 4 / Def 6 / Move 1 / Range 2
 - Cavalry: Atk 4 / Def 5 / Move 2 / Range 2
 - Cannon: Atk 5 / Def 8 / Move 1 / Range 3
-- Arsenal: Atk 0 / Def 0 / Move 0 / Range None (immobile, no defense)
 - Relay: Atk 0 / Def 1 / Move 1 / Range 0
 - Swift Cannon: Atk 5 / Def 8 / Move 2 / Range 3
 - Swift Relay: Atk 0 / Def 1 / Move 2 / Range 0
@@ -14,7 +13,6 @@ import pytest
 
 from pykrieg.board import Board
 from pykrieg.pieces import (
-    Arsenal,
     Cannon,
     Cavalry,
     Infantry,
@@ -65,18 +63,6 @@ def test_cannon_stats():
     assert unit.range == 3
     assert unit.is_combat_unit() is True
     assert unit.is_structure() is False
-
-
-def test_arsenal_stats():
-    """Test Arsenal has correct stats from rules."""
-    unit = Arsenal("SOUTH")
-    assert unit.unit_type == "ARSENAL"
-    assert unit.attack == 0
-    assert unit.defense == 0
-    assert unit.movement == 0
-    assert unit.range is None
-    assert unit.is_combat_unit() is False
-    assert unit.is_structure() is True
 
 
 def test_relay_stats():
@@ -136,7 +122,7 @@ def test_stats_immutability():
 def test_factory_function_all_types():
     """Test create_piece for all unit types."""
     unit_types = [
-        "INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY",
+        "INFANTRY", "CAVALRY", "CANNON", "RELAY",
         "SWIFT_CANNON", "SWIFT_RELAY"
     ]
     for unit_type in unit_types:
@@ -440,10 +426,10 @@ def test_is_valid_unit_type():
     assert board.is_valid_unit_type("INFANTRY") is True
     assert board.is_valid_unit_type("CAVALRY") is True
     assert board.is_valid_unit_type("CANNON") is True
-    assert board.is_valid_unit_type("ARSENAL") is True
     assert board.is_valid_unit_type("RELAY") is True
     assert board.is_valid_unit_type("SWIFT_CANNON") is True
     assert board.is_valid_unit_type("SWIFT_RELAY") is True
+    assert board.is_valid_unit_type("ARSENAL") is False  # Now a terrain type, not a unit
     assert board.is_valid_unit_type("DRAGON") is False
 
 
@@ -465,25 +451,24 @@ def test_full_board_setup():
     """Test setting up a board with multiple units."""
     board = Board()
 
-    # Place various units
-    board.create_and_place_unit(0, 0, "ARSENAL", "NORTH")
+    # Place various units (arsenals as terrain)
+    board.set_arsenal(0, 0, "NORTH")
     board.create_and_place_unit(0, 5, "RELAY", "NORTH")
     board.create_and_place_unit(1, 0, "INFANTRY", "NORTH")
     board.create_and_place_unit(1, 1, "INFANTRY", "NORTH")
     board.create_and_place_unit(1, 2, "CAVALRY", "NORTH")
     board.create_and_place_unit(1, 3, "CANNON", "NORTH")
 
-    board.create_and_place_unit(19, 0, "ARSENAL", "SOUTH")
+    board.set_arsenal(19, 0, "SOUTH")
     board.create_and_place_unit(19, 5, "RELAY", "SOUTH")
     board.create_and_place_unit(18, 0, "INFANTRY", "SOUTH")
     board.create_and_place_unit(18, 1, "INFANTRY", "SOUTH")
     board.create_and_place_unit(18, 2, "CAVALRY", "SOUTH")
     board.create_and_place_unit(18, 3, "CANNON", "SOUTH")
 
-    # Verify counts
-    assert board.count_units(owner="NORTH") == 6
-    assert board.count_units(owner="SOUTH") == 6
-    assert board.count_units(unit_type="ARSENAL") == 2
+    # Verify counts (arsenals are terrain, not units)
+    assert board.count_units(owner="NORTH") == 5
+    assert board.count_units(owner="SOUTH") == 5
     assert board.count_units(unit_type="RELAY") == 2
     assert board.count_units(unit_type="INFANTRY") == 4
     assert board.count_units(unit_type="CAVALRY") == 2
@@ -585,10 +570,10 @@ def test_board_with_maximum_units():
 
 
 def test_board_with_all_unit_types():
-    """Test board with all 7 unit types placed simultaneously."""
+    """Test board with all 6 unit types placed simultaneously."""
     board = Board()
 
-    unit_types = ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL",
+    unit_types = ["INFANTRY", "CAVALRY", "CANNON",
                   "RELAY", "SWIFT_CANNON", "SWIFT_RELAY"]
 
     # Place one of each unit type
@@ -757,33 +742,20 @@ def test_overwrite_structure_with_mobile():
     """Test overwriting structure with mobile unit."""
     board = Board()
 
-    # Place structure
-    board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
-    assert board.get_unit(5, 10).is_structure() is True
+    # Place structure (relay has 0 attack and can be considered structure-like)
+    board.create_and_place_unit(5, 10, "RELAY", "NORTH")
+    assert board.get_unit(5, 10).is_structure() is False  # Relay can move
 
     # Overwrite with mobile unit
     board.create_and_place_unit(5, 10, "CAVALRY", "NORTH")
     assert board.get_unit(5, 10).is_structure() is False
 
 
-def test_overwrite_mobile_with_structure():
-    """Test overwriting mobile unit with structure."""
-    board = Board()
-
-    # Place mobile unit
-    board.create_and_place_unit(5, 10, "CAVALRY", "NORTH")
-    assert board.get_unit(5, 10).is_structure() is False
-
-    # Overwrite with structure
-    board.create_and_place_unit(5, 10, "ARSENAL", "NORTH")
-    assert board.get_unit(5, 10).is_structure() is True
-
-
 def test_multiple_overwrites_sequence():
     """Test multiple overwrites in sequence."""
     board = Board()
 
-    unit_types = ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY"]
+    unit_types = ["INFANTRY", "CAVALRY", "CANNON", "RELAY"]
 
     for unit_type in unit_types:
         board.create_and_place_unit(5, 10, unit_type, "NORTH")
@@ -854,7 +826,7 @@ def test_place_and_retrieve(row, col):
 @given(st.lists(st.tuples(
     st.integers(0, 19),
     st.integers(0, 24),
-    st.sampled_from(["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY",
+    st.sampled_from(["INFANTRY", "CAVALRY", "CANNON", "RELAY",
                     "SWIFT_CANNON", "SWIFT_RELAY"]),
     st.sampled_from(["NORTH", "SOUTH"])
 ), max_size=50))
@@ -870,7 +842,7 @@ def test_count_units_invariant(units_to_place):
     total = board.count_units()
     type_counts = sum(
         board.count_units(unit_type=ut)
-        for ut in ["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY",
+        for ut in ["INFANTRY", "CAVALRY", "CANNON", "RELAY",
                   "SWIFT_CANNON", "SWIFT_RELAY"]
     )
 
@@ -906,7 +878,7 @@ def test_unit_territory_placement(row, col, owner):
         assert board.is_south_territory(row, col) is True
 
 
-@given(st.sampled_from(["INFANTRY", "CAVALRY", "CANNON", "ARSENAL", "RELAY",
+@given(st.sampled_from(["INFANTRY", "CAVALRY", "CANNON", "RELAY",
                         "SWIFT_CANNON", "SWIFT_RELAY"]),
         st.sampled_from(["NORTH", "SOUTH"]))
 def test_unit_creation_and_properties(unit_type, owner):

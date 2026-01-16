@@ -16,7 +16,8 @@ class TestStressTests:
     def test_full_board_500_pieces(self):
         """Test board with all 500 squares filled with pieces."""
         board1 = Board()
-        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+        # ARSENAL is now terrain, not a unit type (0.2.1)
+        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
         # Fill entire board
         piece_count = 0
@@ -75,9 +76,10 @@ class TestStressTests:
         assert Board.tuple_to_spreadsheet(998, 18277) == "18278ALK"
 
     def test_board_with_all_unit_types_on_every_square(self):
-        """Test board with alternating all 7 unit types on every square."""
+        """Test board with alternating all 6 unit types on every square."""
         board = Board()
-        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+        # ARSENAL is now terrain, not a unit type (0.2.1)
+        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
         for row in range(board.rows):
             for col in range(board.cols):
@@ -401,7 +403,8 @@ class TestPerformanceSanityChecks:
     def test_full_board_serialization_performance(self):
         """Test full board serialization completes in <1 second."""
         board = Board()
-        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'ARSENAL', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
+        # ARSENAL is now terrain, not a unit type (0.2.1)
+        unit_types = ['INFANTRY', 'CAVALRY', 'CANNON', 'RELAY', 'SWIFT_CANNON', 'SWIFT_RELAY']
 
         # Fill entire board
         for row in range(board.rows):

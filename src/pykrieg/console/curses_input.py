@@ -42,47 +42,6 @@ class CursesInput:
         self.board = board
         self.display = display
 
-        # Color pair indices (1-based for curses)
-        self.COLOR_NORTH = 1      # Magenta for North units
-        self.COLOR_SOUTH = 2      # Cyan for South units
-        self.COLOR_WHITE = 3       # White for column headers
-        self.COLOR_GRAY = 4        # Gray for alternating column headers
-        self.COLOR_SELECTED_BG = 5 # Magenta background for selection
-        self.COLOR_DEST_BG = 6     # Cyan background for destination
-        self.COLOR_ATTACK_BG = 7   # Red background for attack
-        self.COLOR_DEFENSE_BG = 8  # Blue background for defense
-        self.COLOR_BLOCKED_BG = 9   # Gray background for blocked units
-        self.COLOR_CHARGING_BG = 10  # Gold background for charging cavalry
-        self.COLOR_TERRAIN_DARK = 11   # Dark green for empty terrain outside LOC
-        self.COLOR_TERRAIN_LIGHT = 12  # Light green for empty terrain inside LOC
-
-    def _init_colors(self, stdscr: "_curses.window") -> None:
-        """Initialize curses color pairs.
-
-        Args:
-            stdscr: curses window object
-        """
-        curses.start_color()
-        curses.use_default_colors()
-
-        # Initialize color pairs (foreground, background)
-        curses.init_pair(self.COLOR_NORTH, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-        curses.init_pair(self.COLOR_SOUTH, curses.COLOR_CYAN, curses.COLOR_BLACK)
-        curses.init_pair(self.COLOR_WHITE, curses.COLOR_WHITE, curses.COLOR_BLACK)
-        curses.init_pair(self.COLOR_GRAY, curses.COLOR_WHITE, curses.COLOR_BLACK)
-
-        # Background colors for highlights
-        curses.init_pair(self.COLOR_SELECTED_BG, curses.COLOR_WHITE, curses.COLOR_MAGENTA)
-        curses.init_pair(self.COLOR_DEST_BG, curses.COLOR_BLACK, curses.COLOR_CYAN)
-        curses.init_pair(self.COLOR_ATTACK_BG, curses.COLOR_WHITE, curses.COLOR_RED)
-        curses.init_pair(self.COLOR_DEFENSE_BG, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(self.COLOR_BLOCKED_BG, curses.COLOR_WHITE, curses.COLOR_WHITE)
-        curses.init_pair(self.COLOR_CHARGING_BG, curses.COLOR_WHITE, curses.COLOR_YELLOW)
-
-        # Terrain colors for empty squares
-        curses.init_pair(self.COLOR_TERRAIN_DARK, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        curses.init_pair(self.COLOR_TERRAIN_LIGHT, curses.COLOR_CYAN, curses.COLOR_BLACK)
-
     def get_input(self, prompt: str) -> Optional[str]:
         """Get input using curses with mouse support.
 
@@ -90,34 +49,22 @@ class CursesInput:
             prompt: The prompt string to display
 
         Returns:
-            User input string, or None if quit
+            User input string, or None if quit/error
         """
         logger.debug(f"get_input called with prompt: {prompt[:50]}...")
         try:
             result = wrapper(self._curses_main_loop, prompt)
             logger.debug(f"get_input returned: {result}")
-
-            # If wrapper returned None (terminal too small), fall back to compat
-            if result is None:
-                logger.debug("Curses wrapper returned None, falling back to compat mode")
-                # Clear screen before printing fallback messages
-                self._clear_screen()
-                print("Terminal too small for curses mode.")
-                print("Falling back to compatibility mode...")
-                # Get user input and prefix with marker so game.py knows we're in fallback mode
-                user_response = input(prompt)
-                return f"__FALLBACK_TO_COMPAT__{user_response}"
-
             return result
         except Exception as e:
             logger.error(f"get_input error: {e}", exc_info=True)
-            # Clear screen before printing fallback messages
+            # Clear screen before printing error message
             self._clear_screen()
             print(f"Curses error: {e}")
-            print("Falling back to compatibility mode...")
-            # Get user input and prefix with marker
-            user_response = input(prompt)
-            return f"__FALLBACK_TO_COMPAT__{user_response}"
+            print("\nTerminal may be too small or curses not available.")
+            print("Use 'mode compat' command to switch to compatibility mode.")
+            # Return None to signal error
+            return None
 
     def _clear_screen(self) -> None:
         """Clear terminal screen."""
@@ -159,7 +106,7 @@ class CursesInput:
             User input string
         """
         # Initialize colors first (this ensures curses is fully set up)
-        self._init_colors(stdscr)
+        self.display.init_colors(stdscr)
 
         # Initialize curses
         curses.curs_set(1)  # Show cursor
@@ -240,11 +187,11 @@ class CursesInput:
 
         # Render each line of the prompt
         for line in prompt_lines:
-            stdscr.addstr(y_pos, 0, line, curses.color_pair(self.COLOR_GRAY))
+            stdscr.addstr(y_pos, 0, line, curses.color_pair(self.display.COLOR_GRAY))
             y_pos += 1
 
         # Render input buffer on the next line
-        stdscr.addstr(y_pos, 0, "> " + input_buffer, curses.color_pair(self.COLOR_GRAY))
+        stdscr.addstr(y_pos, 0, "> " + input_buffer, curses.color_pair(self.display.COLOR_GRAY))
 
         # Refresh
         stdscr.refresh()
@@ -291,7 +238,7 @@ class CursesInput:
         logger.debug(f"Rendering game state: {len(lines)} lines")
         for i, line in enumerate(lines):
             logger.debug(f"Line {i}: {line}")
-            stdscr.addstr(i, 0, line, curses.color_pair(self.COLOR_GRAY))
+            stdscr.addstr(i, 0, line, curses.color_pair(self.display.COLOR_GRAY))
         logger.debug("Finished rendering game state")
 
     def _curses_message_loop(self, stdscr: "_curses.window", message: str) -> None:
@@ -305,7 +252,7 @@ class CursesInput:
         below of board, waiting for user to press Enter.
         """
         # Initialize colors
-        self._init_colors(stdscr)
+        self.display.init_colors(stdscr)
 
         # Clear screen completely to avoid overwriting
         stdscr.clear()
@@ -322,11 +269,11 @@ class CursesInput:
         # Render message (handle multi-line messages)
         message_lines = message.split('\n')
         for i, line in enumerate(message_lines):
-            stdscr.addstr(message_y + i, 0, line, curses.color_pair(self.COLOR_GRAY))
+            stdscr.addstr(message_y + i, 0, line, curses.color_pair(self.display.COLOR_GRAY))
 
         # Render "Press Enter to continue" below message
         prompt_y = message_y + len(message_lines)
-        stdscr.addstr(prompt_y, 0, "Press Enter to continue...", curses.color_pair(self.COLOR_GRAY))
+        stdscr.addstr(prompt_y, 0, "Press Enter to continue...", curses.color_pair(self.display.COLOR_GRAY))
 
         # Refresh
         stdscr.refresh()

@@ -10,21 +10,25 @@ from pykrieg import Board, Fen
 def test_board_can_be_created_and_loaded():
     """Success criterion: Board can be created and saved/loaded accurately via FEN format."""
 
-    # Create board with pieces
+    # Create board with pieces (ARSENAL is now terrain, not a unit type in 0.2.1)
     board1 = Board()
     test_positions = [
         (0, 5, 'INFANTRY', 'NORTH'),
         (2, 10, 'CAVALRY', 'NORTH'),
         (4, 15, 'CANNON', 'NORTH'),
-        (6, 20, 'ARSENAL', 'NORTH'),
+        (6, 20, 'ARSENAL', 'NORTH'),  # Will use set_arsenal() below
         (19, 5, 'INFANTRY', 'SOUTH'),
         (17, 10, 'CAVALRY', 'SOUTH'),
         (15, 15, 'CANNON', 'SOUTH'),
-        (13, 20, 'ARSENAL', 'SOUTH'),
+        (13, 20, 'ARSENAL', 'SOUTH'),  # Will use set_arsenal() below
     ]
 
     for row, col, piece_type, owner in test_positions:
-        board1.create_and_place_unit(row, col, piece_type, owner)
+        if piece_type == 'ARSENAL':
+            # ARSENAL is terrain, use set_arsenal() instead
+            board1.set_arsenal(row, col, owner)
+        else:
+            board1.create_and_place_unit(row, col, piece_type, owner)
 
     # Save to FEN
     fen = Fen.board_to_fen(board1)
@@ -39,10 +43,18 @@ def test_board_can_be_created_and_loaded():
 
     # Verify all positions match
     for row, col, piece_type, owner in test_positions:
-        unit = board2.get_unit(row, col)
-        assert unit is not None, f"No unit at ({row}, {col})"
-        assert unit.unit_type == piece_type, f"Wrong type at ({row}, {col})"
-        assert unit.owner == owner, f"Wrong owner at ({row}, {col})"
+        if piece_type == 'ARSENAL':
+            # ARSENAL is terrain, check terrain and owner
+            terrain = board2.get_terrain(row, col)
+            arsenal_owner = board2.get_arsenal_owner(row, col)
+            assert terrain == 'ARSENAL', f"Wrong terrain at ({row}, {col})"
+            assert arsenal_owner == owner, f"Wrong arsenal owner at ({row}, {col})"
+        else:
+            # Regular unit
+            unit = board2.get_unit(row, col)
+            assert unit is not None, f"No unit at ({row}, {col})"
+            assert unit.unit_type == piece_type, f"Wrong type at ({row}, {col})"
+            assert unit.owner == owner, f"Wrong owner at ({row}, {col})"
 
     # Verify turn matches
     assert board1.turn == board2.turn
@@ -258,14 +270,14 @@ def test_acceptance_criteria_fen_format():
 
 
 def test_acceptance_criteria_all_unit_types():
-    """Verify all 7 unit types are supported."""
+    """Verify all 6 unit types are supported (ARSENAL is terrain, not a unit)."""
     board = Board()
 
+    # ARSENAL is now terrain, not a unit type (0.2.1)
     unit_types = [
         'INFANTRY',
         'CAVALRY',
         'CANNON',
-        'ARSENAL',
         'RELAY',
         'SWIFT_CANNON',
         'SWIFT_RELAY',
@@ -275,6 +287,10 @@ def test_acceptance_criteria_all_unit_types():
     for i, unit_type in enumerate(unit_types):
         board.create_and_place_unit(0, i, unit_type, 'NORTH')
         board.create_and_place_unit(19, i, unit_type, 'SOUTH')
+
+    # Add arsenals as terrain
+    board.set_arsenal(0, 6, 'NORTH')
+    board.set_arsenal(19, 6, 'SOUTH')
 
     # Serialize and deserialize
     fen = Fen.board_to_fen(board)
@@ -290,3 +306,7 @@ def test_acceptance_criteria_all_unit_types():
 
         assert south_unit.unit_type == unit_type
         assert south_unit.owner == 'SOUTH'
+
+    # Verify arsenals preserved as terrain
+    assert board2.get_arsenal_owner(0, 6) == 'NORTH'
+    assert board2.get_arsenal_owner(19, 6) == 'SOUTH'

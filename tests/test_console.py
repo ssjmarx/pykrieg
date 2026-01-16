@@ -296,8 +296,8 @@ class TestCommandValidation:
         """Test validating a valid move."""
         board = Board()
         # Add an arsenal so units are online (required for movement in 0.2.0)
-        board.create_and_place_unit(0, 10, "ARSENAL", "NORTH")
-        # Place infantry at (5, 10) which is in the arsenal's ray (same column)
+        board.set_arsenal(0, 10, "NORTH")
+        # Place infantry at (5, 10) which is in arsenal's ray (same column)
         board.create_and_place_unit(5, 10, "INFANTRY", "NORTH")
 
         # Calculate networks so that infantry is online
@@ -574,8 +574,8 @@ class TestConsoleGameIntegration:
         game = ConsoleGame(display_mode='compatibility')
         game.board = Board()  # Clear board
         # Add an arsenal so units are online (required for movement in 0.2.0)
-        game.board.create_and_place_unit(0, 12, "ARSENAL", "NORTH")
-        # Place infantry at (5, 12) which IS in the arsenal's ray (same column)
+        game.board.set_arsenal(0, 12, "NORTH")
+        # Place infantry at (5, 12) which IS in arsenal's ray (same column)
         game.board.create_and_place_unit(5, 12, "INFANTRY", "NORTH")
 
         # Calculate networks so that infantry is online
@@ -687,8 +687,10 @@ class TestConsoleGameIntegration:
         game = ConsoleGame(display_mode='compatibility')
 
         mode_command = parse_command("mode curses")
+        # Mock terminal detection to allow mode switch in test environment
         with patch('builtins.input', return_value=''):
-            game._execute_mode(mode_command)
+            with patch('pykrieg.console.terminal.detect_best_mode', return_value='curses'):
+                game._execute_mode(mode_command)
 
         assert game.display_mode == DisplayMode.CURSES
 
@@ -698,8 +700,10 @@ class TestConsoleGameIntegration:
         old_display = game.display
 
         mode_command = parse_command("mode curses")
+        # Mock terminal detection to allow mode switch in test environment
         with patch('builtins.input', return_value=''):
-            game._execute_mode(mode_command)
+            with patch('pykrieg.console.terminal.detect_best_mode', return_value='curses'):
+                game._execute_mode(mode_command)
 
         # Display should be new instance
         assert game.display is not old_display

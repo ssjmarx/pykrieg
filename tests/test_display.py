@@ -141,7 +141,6 @@ class TestDisplayCoordinateMapping:
             "INFANTRY",
             "CAVALRY",
             "CANNON",
-            "ARSENAL",
             "RELAY",
             "SWIFT_CANNON",
             "SWIFT_RELAY",
@@ -159,7 +158,7 @@ class TestDisplayCoordinateMapping:
             # Compatibility mode should return ASCII
             char_compat = display_compat._get_unit_char(unit)
             assert char_compat.isupper()  # North is uppercase
-            assert char_compat in ['I', 'C', 'K', 'A', 'R', 'W', 'X']
+            assert char_compat in ['I', 'C', 'K', 'R', 'W', 'X']
 
             board.clear_square(5, 10)
 
