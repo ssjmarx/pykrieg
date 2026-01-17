@@ -102,7 +102,7 @@ class ConsoleGame:
             "",
             "╔══════════════════════════════════════════════════╗",
             "║                                                  ║",
-            "║        PYKRIEG - Console Interface v0.2.2        ║",
+            "║        PYKRIEG - Console Interface v0.2.3        ║",
             "║         Guy Debord's Le Jeu de la Guerre         ║",
             "║                                                  ║",
             "╚══════════════════════════════════════════════════╝",
@@ -645,6 +645,12 @@ class ConsoleGame:
             self._execute_mode(command)
         elif cmd_type.name == "PHASE":
             self._execute_phase(command)
+        elif cmd_type.name == "UNDO":
+            self._execute_undo(command)
+        elif cmd_type.name == "REDO":
+            self._execute_redo(command)
+        elif cmd_type.name == "SET_UNDO_LIMIT":
+            self._execute_set_undo_limit(command)
         elif cmd_type.name == "QUIT":
             self._quit()
 
@@ -1080,12 +1086,37 @@ class ConsoleGame:
         filename = command.args.get('filename', 'pykrieg_save.fen')
 
         try:
-            fen = Fen.board_to_fen(self.board)
+            # Detect if KFEN format requested (.kfen extension)
+            if filename.endswith('.kfen'):
+                from ..kfen import KFENMetadata, write_kfen
 
-            with open(filename, 'w') as f:
-                f.write(fen)
+                # Get metadata from board if set
+                metadata_dict = self.board.get_kfen_metadata()
+                metadata = None
+                if metadata_dict:
+                    game_name_val = metadata_dict.get('game_name')
+                    players_val = metadata_dict.get('players')
+                    event_val = metadata_dict.get('event')
+                    metadata = KFENMetadata(
+                        game_name=game_name_val if isinstance(game_name_val, str) else None,
+                        players=players_val if isinstance(players_val, dict) else None,
+                        event=event_val if isinstance(event_val, str) else None
+                    )
 
-            message = f"Game saved to {filename}"
+                # Save as KFEN
+                write_kfen(self.board, filename, metadata)
+                message = f"Game saved to {filename} (KFEN format)"
+            else:
+                # Save as traditional FEN
+                fen = Fen.board_to_fen(self.board)
+
+                with open(filename, 'w') as f:
+                    f.write(fen)
+
+                message = f"Game saved to {filename} (FEN format)"
+
+            # Clear undo/redo history after save
+            self.board._undo_redo_manager.clear()
 
             # Display message based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
@@ -1126,18 +1157,72 @@ class ConsoleGame:
                     self._render()
                 return
 
-            with open(filename) as f:
-                fen = f.read()
+            # Detect file format: KFEN or FEN
+            if filename.endswith('.kfen'):
+                # Load KFEN file
+                from ..kfen import read_kfen, reconstruct_board_from_history, validate_history
 
-            self.board = Fen.fen_to_board(fen)
+                document = read_kfen(filename)
+
+                # Validate history
+                is_valid, error = validate_history(document)
+                if not is_valid:
+                    message = f"Warning: Invalid KFEN history - {error}"
+                    message += "\nLoading board state only..."
+
+                    # Display warning based on mode
+                    if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                        self.curses_input.show_message(message)
+                    else:
+                        print(message)
+                        input("Press Enter to continue...")
+
+                    # Load board state only
+                    from ..fen import Fen
+                    with open(filename) as f:
+                        content = f.read()
+                        # Extract FEN from JSON if possible, otherwise use board_info.fen
+                        import json
+                        try:
+                            json_data = json.loads(content)
+                            fen_string = json_data.get('board_info', {}).get('fen', '')
+                            if fen_string:
+                                self.board = Fen.fen_to_board(fen_string)
+                            else:
+                                raise ValueError("No FEN in KFEN document")
+                        except json.JSONDecodeError:
+                            # Not valid JSON, try as plain FEN
+                            self.board = Fen.fen_to_board(content)
+                else:
+                    # Valid history - full reconstruction
+                    self.board = reconstruct_board_from_history(document)
+                    message = f"Game loaded from {filename} (KFEN format with history)"
+
+                # Store metadata from KFEN
+                if document.metadata:
+                    self.board.set_kfen_metadata({
+                        'game_name': document.metadata.game_name,
+                        'players': document.metadata.players,
+                        'event': document.metadata.event,
+                        'result': document.metadata.result
+                    })
+            else:
+                # Load traditional FEN file
+                with open(filename) as f:
+                    fen = f.read()
+
+                self.board = Fen.fen_to_board(fen)
+                message = f"Game loaded from {filename} (FEN format)"
 
             # After loading, enable networks
             self.board.enable_networks()
 
+            # Clear undo/redo history after load
+            self.board._undo_redo_manager.clear()
+
             # Update curses input board reference
             if self.curses_input:
                 self.curses_input.update_board(self.board)
-            message = f"Game loaded from {filename}"
 
             # Display message based on mode
             if self.display_mode == DisplayMode.CURSES and self.curses_input:
@@ -1264,26 +1349,176 @@ class ConsoleGame:
         else:
             self.curses_input = None
 
-        input("Press Enter to apply mode change...")
-        self._render()
+            input("Press Enter to apply mode change...")
+            self._render()
+
+    def _execute_undo(self, command: Command) -> None:
+        """Execute undo command.
+
+        Args:
+            command: Undo command with optional count
+        """
+        count = command.args.get('count', 1)
+
+        try:
+            # Check if undo is available
+            if not self.board.can_undo():
+                message = "No actions to undo."
+
+                # Display message based on mode
+                if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                    self.curses_input.show_message(message)
+                else:
+                    print(message)
+                    input("Press Enter to continue...")
+                    self._render()
+                return
+
+            # Undo the specified number of actions
+            self.board.undo(count)
+            action_word = "action" if count == 1 else "actions"
+
+            message = f"Undid {count} {action_word}."
+
+            # After undo, recalculate networks for both players
+            # Undoing can restore units that were removed, affecting networks
+            self.board.calculate_network('NORTH')
+            self.board.calculate_network('SOUTH')
+
+            # Update curses input board reference
+            if self.curses_input:
+                self.curses_input.update_board(self.board)
+
+            # Display message based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+        except Exception as e:
+            message = f"Error undoing: {e}"
+
+            # Display error based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+
+    def _execute_redo(self, command: Command) -> None:
+        """Execute redo command.
+
+        Args:
+            command: Redo command with optional count
+        """
+        count = command.args.get('count', 1)
+
+        try:
+            # Check if redo is available
+            if not self.board.can_redo():
+                message = "No actions to redo."
+
+                # Display message based on mode
+                if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                    self.curses_input.show_message(message)
+                else:
+                    print(message)
+                    input("Press Enter to continue...")
+                    self._render()
+                return
+
+            # Redo the specified number of actions
+            self.board.redo(count)
+            action_word = "action" if count == 1 else "actions"
+
+            message = f"Redid {count} {action_word}."
+
+            # After redo, recalculate networks for both players
+            # Redoing can remove units that were restored, affecting networks
+            self.board.calculate_network('NORTH')
+            self.board.calculate_network('SOUTH')
+
+            # Update curses input board reference
+            if self.curses_input:
+                self.curses_input.update_board(self.board)
+
+            # Display message based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+        except Exception as e:
+            message = f"Error redoing: {e}"
+
+            # Display error based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+
+    def _execute_set_undo_limit(self, command: Command) -> None:
+        """Execute set_undo_limit command.
+
+        Args:
+            command: Set undo limit command with limit value
+        """
+        limit = command.args.get('limit')
+
+        try:
+            if limit is not None and isinstance(limit, int):
+                self.board.set_max_undo_history(limit)
+            else:
+                raise ValueError("Invalid undo limit")
+
+            if limit == 0:
+                message = "Undo history set to unlimited."
+            else:
+                message = f"Undo history limit set to {limit} actions."
+
+            # Display message based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
+        except Exception as e:
+            message = f"Error setting undo limit: {e}"
+
+            # Display error based on mode
+            if self.display_mode == DisplayMode.CURSES and self.curses_input:
+                self.curses_input.show_message(message)
+            else:
+                print(message)
+                input("Press Enter to continue...")
+                self._render()
 
     def _load_default_position(self) -> Board:
-        """Load default starting position from FEN file.
+        """Load default starting position from KFEN file.
 
         Returns:
             Board object with default starting position, or empty board if file not found
         """
-        # Get the directory where this file is located
+        # Get path to where this file is located
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        default_fen_path = os.path.join(current_dir, 'default_starting_position.fen')
+        default_kfen_path = os.path.join(current_dir, 'default_starting_position.kfen')
 
         try:
-            with open(default_fen_path) as f:
-                # Read file and strip whitespace/newlines
-                fen_string = f.read().strip()
+            if not os.path.exists(default_kfen_path):
+                print("Warning: Default starting position file not found.")
+                print("Starting with empty board.")
+                return Board()
 
-            # Load board from FEN string
-            board = Fen.fen_to_board(fen_string)
+            # Load from KFEN file
+            from ..kfen import read_kfen, reconstruct_board_from_history
+            document = read_kfen(default_kfen_path)
+            board = reconstruct_board_from_history(document)
 
             # After loading, enable networks
             board.enable_networks()

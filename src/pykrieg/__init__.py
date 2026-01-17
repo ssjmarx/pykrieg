@@ -4,11 +4,11 @@ Pykrieg - A Pythonic wargame engine for Guy Debord's Le Jeu de la Guerre.
 This package is currently in early development. Check back soon for updates!
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "ssjmarx"
 __license__ = "GPL-3.0"
 
-from . import board, combat, constants, fen, movement, types, victory
+from . import board, combat, constants, fen, kfen, movement, types, victory
 from .board import Board
 from .combat import (
     CombatOutcome,
@@ -23,6 +23,26 @@ from .combat import (
     resolve_combat,
 )
 from .fen import Fen
+
+# KFEN exports
+from .kfen import (
+    KFENAttack,
+    KFENBoardInfo,
+    KFENDocument,
+    KFENGameState,
+    KFENMetadata,
+    KFENMove,
+    KFENPhaseChange,
+    KFENTurn,
+    KFENTurnEnd,
+    KFENUndoRedo,
+    convert_fen_to_kfen,
+    export_kfen_to_fen,
+    read_kfen,
+    reconstruct_board_from_history,
+    validate_history,
+    write_kfen,
+)
 from .movement import (
     can_move,
     execute_move,
@@ -62,6 +82,7 @@ __all__ = [
     'combat',
     'constants',
     'fen',
+    'kfen',
     'types',
     'movement',
     'turn',
@@ -103,4 +124,21 @@ __all__ = [
     'check_total_annihilation',
     'check_network_collapse',
     'check_victory_conditions',
+    # KFEN exports
+    'KFENMetadata',
+    'KFENBoardInfo',
+    'KFENGameState',
+    'KFENMove',
+    'KFENPhaseChange',
+    'KFENAttack',
+    'KFENTurnEnd',
+    'KFENTurn',
+    'KFENUndoRedo',
+    'KFENDocument',
+    'write_kfen',
+    'read_kfen',
+    'validate_history',
+    'reconstruct_board_from_history',
+    'convert_fen_to_kfen',
+    'export_kfen_to_fen',
 ]
