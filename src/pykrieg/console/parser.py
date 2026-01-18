@@ -31,6 +31,9 @@ class CommandType(Enum):
     HELP = "help"
     MODE = "mode"
     PHASE = "phase"
+    UNDO = "undo"
+    REDO = "redo"
+    SET_UNDO_LIMIT = "set_undo_limit"
     QUIT = "quit"
     INVALID = "invalid"
 
@@ -104,6 +107,12 @@ def parse_command(input_str: str) -> Command:
         return Command(CommandType.HELP)
     elif cmd == "mode":
         return _parse_mode_command(parts)
+    elif cmd in ["undo", "u"]:
+        return _parse_undo_command(parts)
+    elif cmd in ["redo", "r"]:
+        return _parse_redo_command(parts)
+    elif cmd == "set_undo_limit":
+        return _parse_set_undo_limit_command(parts)
     elif cmd in ["quit", "q", "exit"]:
         return Command(CommandType.QUIT)
     else:
@@ -225,8 +234,8 @@ def _parse_save_command(parts: list) -> Command:
     if len(parts) > 1:
         filename = parts[1]
     else:
-        # Default filename
-        filename = "pykrieg_save.fen"
+        # Default filename (now uses KFEN format)
+        filename = "pykrieg_save.kfen"
 
     return Command(CommandType.SAVE, {"filename": filename})
 
@@ -245,8 +254,8 @@ def _parse_load_command(parts: list) -> Command:
     if len(parts) > 1:
         filename = parts[1]
     else:
-        # Default filename
-        filename = "pykrieg_save.fen"
+        # Default filename (now uses KFEN format)
+        filename = "pykrieg_save.kfen"
 
     return Command(CommandType.LOAD, {"filename": filename})
 
@@ -301,6 +310,79 @@ def _parse_phase_command(parts: list) -> Command:
         return Command(CommandType.INVALID, {"error": "Invalid phase. Use 'battle' or 'movement'"})
 
     return Command(CommandType.PHASE, {"phase": phase})
+
+
+def _parse_undo_command(parts: list) -> Command:
+    """Parse undo command.
+
+    Format: "undo [count]" or "undo"
+
+    Args:
+        parts: Command parts list
+
+    Returns:
+        Parsed Command
+    """
+    if len(parts) > 1:
+        try:
+            count = int(parts[1])
+            if count < 1:
+                return Command(CommandType.INVALID, {"error": "Undo count must be at least 1"})
+        except ValueError:
+            return Command(CommandType.INVALID, {"error": "Invalid undo count. Must be a number."})
+    else:
+        count = 1
+
+    return Command(CommandType.UNDO, {"count": count})
+
+
+def _parse_redo_command(parts: list) -> Command:
+    """Parse redo command.
+
+    Format: "redo [count]" or "redo"
+
+    Args:
+        parts: Command parts list
+
+    Returns:
+        Parsed Command
+    """
+    if len(parts) > 1:
+        try:
+            count = int(parts[1])
+            if count < 1:
+                return Command(CommandType.INVALID, {"error": "Redo count must be at least 1"})
+        except ValueError:
+            return Command(CommandType.INVALID, {"error": "Invalid redo count. Must be a number."})
+    else:
+        count = 1
+
+    return Command(CommandType.REDO, {"count": count})
+
+
+def _parse_set_undo_limit_command(parts: list) -> Command:
+    """Parse set_undo_limit command.
+
+    Format: "set_undo_limit <number>"
+
+    Args:
+        parts: Command parts list
+
+    Returns:
+        Parsed Command or INVALID if malformed
+    """
+    if len(parts) < 2:
+        return Command(CommandType.INVALID, {"error": "set_undo_limit requires a number"})
+
+    try:
+        limit = int(parts[1])
+        if limit < 0:
+            msg = "Undo limit must be 0 or greater (0 = unlimited)"
+            return Command(CommandType.INVALID, {"error": msg})
+    except ValueError:
+        return Command(CommandType.INVALID, {"error": "Invalid undo limit. Must be a number."})
+
+    return Command(CommandType.SET_UNDO_LIMIT, {"limit": limit})
 
 
 def _parse_coordinates(coord_str: str) -> Optional[Tuple[int, int]]:
@@ -379,6 +461,12 @@ def validate_command(board: Board, command: Command) -> Tuple[bool, Optional[str
         return True, None
     elif command.command_type == CommandType.PHASE:
         return _validate_phase(board, command)
+    elif command.command_type == CommandType.UNDO:
+        return True, None
+    elif command.command_type == CommandType.REDO:
+        return True, None
+    elif command.command_type == CommandType.SET_UNDO_LIMIT:
+        return True, None
     else:
         return False, "Invalid command"
 
@@ -558,9 +646,16 @@ def get_help_text() -> str:
         "  ph m                 Switch to movement phase (abbreviated)",
         "",
         "Game Management:",
-        "  surrender             Surrender the game (concede defeat)",
-        "  save [filename]      Save game to FEN file",
-        "  load [filename]      Load game from FEN file",
+        "  surrender             Surrender to game (concede defeat)",
+        "  save [filename]      Save game to KFEN file (.kfen)",
+        "                        (default: pykrieg_save.kfen)",
+        "  load [filename]      Load game from KFEN or FEN file",
+        "                        (default: pykrieg_save.kfen)",
+        "  undo [count]         Undo last action(s)",
+        "  u [count]            Undo (abbreviated)",
+        "  redo [count]         Redo last undone action(s)",
+        "  r [count]            Redo (abbreviated)",
+        "  set_undo_limit <n>   Set max undo history (0 = unlimited)",
         "",
         "Display:",
         "  mode curses          Switch to curses mode (full UI with mouse)",

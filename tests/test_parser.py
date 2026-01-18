@@ -93,17 +93,17 @@ class TestParserEdgeCases:
         result = parse_command("save")
 
         assert result.command_type == CommandType.SAVE
-        # Should have default filename
+        # Should have default filename (now KFEN format)
         assert result.args['filename'] is not None
-        assert ".fen" in result.args['filename']
+        assert ".kfen" in result.args['filename']
 
     def test_parse_load_default_filename(self):
         """Test parsing load without filename uses default."""
         result = parse_command("load")
 
         assert result.command_type == CommandType.LOAD
-        # Should have default filename
-        assert result.args['filename'] == "pykrieg_save.fen"
+        # Should have default filename (now KFEN format)
+        assert result.args['filename'] == "pykrieg_save.kfen"
 
     def test_parse_move_to_format(self):
         """Test parsing move with 'to' keyword."""
@@ -332,3 +332,107 @@ class TestCoordinateParsing:
         result = _parse_coordinates("")
 
         assert result is None
+
+
+# ============================================================================
+# Undo/Redo Command Tests
+# ============================================================================
+
+class TestUndoRedoCommands:
+    """Test undo/redo command parsing."""
+
+    def test_parse_undo_command(self):
+        """Test parsing undo command."""
+        command = parse_command("undo")
+        assert command.command_type.name == "UNDO"
+        assert command.args.get('count') == 1
+
+    def test_parse_undo_command_abbreviated(self):
+        """Test parsing abbreviated undo command."""
+        command = parse_command("u")
+        assert command.command_type.name == "UNDO"
+        assert command.args.get('count') == 1
+
+    def test_parse_undo_with_count(self):
+        """Test parsing undo command with count."""
+        command = parse_command("undo 5")
+        assert command.command_type.name == "UNDO"
+        assert command.args.get('count') == 5
+
+    def test_parse_undo_invalid_count_negative(self):
+        """Test parsing undo with negative count."""
+        command = parse_command("undo -1")
+        assert command.command_type.name == "INVALID"
+        assert "at least 1" in command.args.get('error', '')
+
+    def test_parse_undo_invalid_count_zero(self):
+        """Test parsing undo with zero count."""
+        command = parse_command("undo 0")
+        assert command.command_type.name == "INVALID"
+        assert "at least 1" in command.args.get('error', '')
+
+    def test_parse_undo_invalid_count_text(self):
+        """Test parsing undo with text instead of number."""
+        command = parse_command("undo abc")
+        assert command.command_type.name == "INVALID"
+        assert "number" in command.args.get('error', '')
+
+    def test_parse_redo_command(self):
+        """Test parsing redo command."""
+        command = parse_command("redo")
+        assert command.command_type.name == "REDO"
+        assert command.args.get('count') == 1
+
+    def test_parse_redo_command_abbreviated(self):
+        """Test parsing abbreviated redo command."""
+        command = parse_command("r")
+        assert command.command_type.name == "REDO"
+        assert command.args.get('count') == 1
+
+    def test_parse_redo_with_count(self):
+        """Test parsing redo command with count."""
+        command = parse_command("redo 3")
+        assert command.command_type.name == "REDO"
+        assert command.args.get('count') == 3
+
+    def test_parse_redo_invalid_count_negative(self):
+        """Test parsing redo with negative count."""
+        command = parse_command("redo -5")
+        assert command.command_type.name == "INVALID"
+        assert "at least 1" in command.args.get('error', '')
+
+    def test_parse_redo_invalid_count_zero(self):
+        """Test parsing redo with zero count."""
+        command = parse_command("redo 0")
+        assert command.command_type.name == "INVALID"
+        assert "at least 1" in command.args.get('error', '')
+
+    def test_parse_set_undo_limit_command(self):
+        """Test parsing set_undo_limit command."""
+        command = parse_command("set_undo_limit 100")
+        assert command.command_type.name == "SET_UNDO_LIMIT"
+        assert command.args.get('limit') == 100
+
+    def test_parse_set_undo_limit_zero(self):
+        """Test parsing set_undo_limit with 0 (unlimited)."""
+        command = parse_command("set_undo_limit 0")
+        assert command.command_type.name == "SET_UNDO_LIMIT"
+        assert command.args.get('limit') == 0
+
+    def test_parse_set_undo_limit_negative(self):
+        """Test parsing set_undo_limit with negative value."""
+        command = parse_command("set_undo_limit -10")
+        assert command.command_type.name == "INVALID"
+        assert "0 or greater" in command.args.get('error', '')
+
+    def test_parse_set_undo_limit_no_value(self):
+        """Test parsing set_undo_limit without value."""
+        command = parse_command("set_undo_limit")
+        assert command.command_type.name == "INVALID"
+        assert "requires a number" in command.args.get('error', '')
+
+    def test_parse_set_undo_limit_invalid_value(self):
+        """Test parsing set_undo_limit with text value."""
+        command = parse_command("set_undo_limit abc")
+        assert command.command_type.name == "INVALID"
+        assert "number" in command.args.get('error', '')

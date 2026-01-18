@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from . import constants
 
 if TYPE_CHECKING:
-    pass
+    from .undo_redo import UndoRedoManager
 
 
 class Board:
@@ -36,8 +36,11 @@ class Board:
                 relays only propagate via arsenal rays and other relay rays
                 (original Debord behavior).
         """
+        from .undo_redo import UndoRedoManager
+
         self._rows = constants.BOARD_ROWS
         self._cols = constants.BOARD_COLS
+        self._undo_redo_manager = UndoRedoManager(max_history=100)  # Undo/redo support
         # Use Any to handle both None and Unit objects due to circular imports
         self._board: List[List[Any]] = [[None for _ in range(self._cols)]
                                         for _ in range(self._rows)]
@@ -91,6 +94,9 @@ class Board:
         self._game_state: str = "ONGOING"  # Track game state
         self._victory_result: Optional[Dict[str, object]] = None  # Store victory details
 
+        # KFEN metadata storage
+        self._kfen_metadata: Optional[Dict[str, object]] = None
+
     @property
     def rows(self) -> int:
         """Return number of rows."""
@@ -100,6 +106,40 @@ class Board:
     def cols(self) -> int:
         """Return number of columns."""
         return self._cols
+
+    @property
+    def undo_redo_manager(self) -> 'UndoRedoManager':
+        """Return the undo/redo manager."""
+        return self._undo_redo_manager
+
+    # KFEN metadata methods
+
+    def get_kfen_metadata(self) -> Optional[Dict[str, object]]:
+        """Get KFEN metadata for this board.
+
+        Returns:
+            Dictionary with KFEN metadata or None if not set
+
+        Note:
+            This is used when saving games to include metadata like
+            game name, player names, event, etc.
+        """
+        return self._kfen_metadata
+
+    def set_kfen_metadata(self, metadata: Dict[str, object]) -> None:
+        """Set KFEN metadata for this board.
+
+        Args:
+            metadata: Dictionary with KFEN metadata fields
+
+        Example:
+            >>> board.set_kfen_metadata({
+            ...     "game_name": "Tournament Final",
+            ...     "players": {"north": "Alice", "south": "Bob"},
+            ...     "event": "World Championship 2026"
+            ... })
+        """
+        self._kfen_metadata = metadata
 
     @property
     def turn(self) -> str:
@@ -866,9 +906,12 @@ class Board:
 
         # Check if destination is enemy arsenal before moving
         arsenal_destroyed = False
+        destroyed_arsenal_info: Optional[Tuple[int, int, str]] = None
         if self._terrain[to_row][to_col] == constants.TERRAIN_ARSENAL:
             arsenal_owner = self._arsenal_owners.get((to_row, to_col))
-            if arsenal_owner != unit.owner:  # type: ignore[attr-defined]
+            if arsenal_owner and arsenal_owner != unit.owner:  # type: ignore[attr-defined]
+                # Capture arsenal info before destruction
+                destroyed_arsenal_info = (to_row, to_col, arsenal_owner)
                 # Destroy enemy arsenal
                 self.destroy_arsenal(to_row, to_col)
                 arsenal_destroyed = True
@@ -883,8 +926,21 @@ class Board:
         self._moves_made.append((from_row, from_col, to_row, to_col))
 
         # Clear retreat flag if this was a retreat move
-        if (from_row, from_col) in self._units_must_retreat:
+        was_retreat = (from_row, from_col) in self._units_must_retreat
+        if was_retreat:
             self._units_must_retreat.remove((from_row, from_col))
+
+
+        # Record the move action
+        self._record_move_action(
+            from_pos=(from_row, from_col),
+            to_pos=(to_row, to_col),
+            unit_id=unit_id,
+            unit_type=moved_unit.unit_type,  # type: ignore[attr-defined]
+            owner=moved_unit.owner,  # type: ignore[attr-defined]
+            was_retreat=was_retreat,
+            destroyed_arsenal=destroyed_arsenal_info
+        )
 
         return (moved_unit, arsenal_destroyed)
 
@@ -965,16 +1021,38 @@ class Board:
         # Handle outcome
         from .combat import CombatOutcome
         outcome = result['outcome']
+        captured_unit_info = None
+        retreat_positions_to_record = []
+
         if outcome == CombatOutcome.CAPTURE:
+            # Get captured unit info before executing capture
+            target_unit = self.get_unit(target_row, target_col)
+            if target_unit:
+                captured_unit_info = {
+                    'unit_type': target_unit.unit_type,  # type: ignore[attr-defined]
+                    'owner': target_unit.owner  # type: ignore[attr-defined]
+                }
             # Execute capture
             self.execute_capture(target_row, target_col)
         elif outcome == CombatOutcome.RETREAT:
             # Mark defender for retreat
             self.add_pending_retreat(target_row, target_col)
+            # Track which units must retreat due to this attack
+            # This includes the target and any nearby units in retreat mode
+            retreat_positions_to_record = list(self._units_must_retreat)
 
         # Track attack and target
         self._attacks_this_turn += 1
         self._attack_target = (target_row, target_col)
+
+        # Record attack action for undo/redo
+        self._record_attack_action(
+            target_pos=(target_row, target_col),
+            outcome=str(outcome.value) if hasattr(outcome, 'value') else str(outcome),
+            attacker=self._turn,
+            captured_unit=captured_unit_info,
+            retreat_positions=retreat_positions_to_record
+        )
 
         return result
 
@@ -1095,6 +1173,14 @@ class Board:
             - It persists until the NEXT end_turn() call
             - This allows retreat state to persist during a player's turn
         """
+        # Store old state before turn changes
+        old_turn = (self._turn, self._turn_number)
+        old_phase = self._current_phase
+        old_moves_made = list(self._moves_made)
+        old_attacks_this_turn = self._attacks_this_turn
+        old_attack_target = self._attack_target
+        old_units_must_retreat = set(self._units_must_retreat)
+
         # Switch player and increment turn
         self.increment_turn()
 
@@ -1118,6 +1204,18 @@ class Board:
 
         # NEW: Check victory conditions after turn
         self.check_victory()
+
+        # Record turn boundary action for undo/redo
+        new_turn = (self._turn, self._turn_number)
+        self._record_turn_boundary(
+            old_turn=old_turn,
+            new_turn=new_turn,
+            old_phase=old_phase,
+            old_moves_made=old_moves_made,
+            old_attacks_this_turn=old_attacks_this_turn,
+            old_attack_target=old_attack_target,
+            old_units_must_retreat=old_units_must_retreat
+        )
 
         return captured
 
@@ -1178,6 +1276,144 @@ class Board:
             else constants.PLAYER_NORTH
         )
         self._current_phase = constants.PHASE_MOVEMENT  # Reset to movement phase
+
+    # =====================================================================
+    # Undo/Redo Support
+    # =====================================================================
+
+    def can_undo(self) -> bool:
+        """Check if undo is available.
+
+        Returns:
+            True if undo is available, False otherwise
+        """
+        return self._undo_redo_manager.can_undo()
+
+    def can_redo(self) -> bool:
+        """Check if redo is available.
+
+        Returns:
+            True if redo is available, False otherwise
+        """
+        return self._undo_redo_manager.can_redo()
+
+    def undo(self, count: int = 1) -> None:
+        """Undo one or more actions.
+
+        Args:
+            count: Number of actions to undo (default: 1)
+
+        Raises:
+            ValueError: If count exceeds available actions
+        """
+        if count == 1:
+            self._undo_redo_manager.undo(self)
+        else:
+            self._undo_redo_manager.undo_multiple(self, count)
+
+    def redo(self, count: int = 1) -> None:
+        """Redo one or more actions.
+
+        Args:
+            count: Number of actions to redo (default: 1)
+
+        Raises:
+            ValueError: If count exceeds available actions
+        """
+        if count == 1:
+            self._undo_redo_manager.redo(self)
+        else:
+            self._undo_redo_manager.redo_multiple(self, count)
+
+    def set_max_undo_history(self, max_size: int) -> None:
+        """Set maximum undo history size.
+
+        Args:
+            max_size: Maximum number of actions to keep. Set to 0 for unlimited.
+        """
+        self._undo_redo_manager.set_max_history(max_size)
+
+    def _record_move_action(
+        self,
+        from_pos: Tuple[int, int],
+        to_pos: Tuple[int, int],
+        unit_id: int,
+        unit_type: str,
+        owner: str,
+        was_retreat: bool,
+        destroyed_arsenal: Optional[Tuple[int, int, str]] = None,
+    ) -> None:
+        """Record a move action for undo/redo.
+
+        Args:
+            from_pos: Source position (row, col)
+            to_pos: Destination position (row, col)
+            unit_id: Python ID of the unit
+            unit_type: Type of unit (e.g., 'INFANTRY')
+            owner: 'NORTH' or 'SOUTH'
+            was_retreat: True if this was a retreat move
+            destroyed_arsenal: Optional (row, col, owner) if arsenal was destroyed
+        """
+        from .undo_redo import MoveAction
+        action = MoveAction(
+            from_pos=from_pos,
+            to_pos=to_pos,
+            unit_id=unit_id,
+            unit_type=unit_type,
+            owner=owner,
+            was_retreat=was_retreat,
+            destroyed_arsenal=destroyed_arsenal
+        )
+        self._undo_redo_manager.record_action(action)
+
+    def _record_attack_action(self, target_pos: Tuple[int, int], outcome: str,
+                           attacker: str, captured_unit: Optional[Dict[str, Any]] = None,
+                           retreat_positions: Optional[List[Tuple[int, int]]] = None) -> None:
+        """Record an attack action for undo/redo.
+
+        Args:
+            target_pos: Target position (row, col)
+            outcome: 'CAPTURE', 'RETREAT', or 'FAIL'
+            attacker: 'NORTH' or 'SOUTH'
+            captured_unit: Optional dict with 'unit_type' and 'owner' if captured
+            retreat_positions: Optional list of positions marked for retreat
+        """
+        from .undo_redo import AttackAction
+        action = AttackAction(
+            target_pos=target_pos,
+            outcome=outcome,
+            attacker=attacker,
+            captured_unit=captured_unit,
+            retreat_positions=retreat_positions if retreat_positions is not None else []
+        )
+        self._undo_redo_manager.record_action(action)
+
+    def _record_turn_boundary(self, old_turn: Tuple[str, int], new_turn: Tuple[str, int],
+                           old_phase: str, old_moves_made: List[Tuple[int, int, int, int]],
+                           old_attacks_this_turn: int, old_attack_target: Optional[Tuple[int, int]],
+                           old_units_must_retreat: Set[Tuple[int, int]]) -> None:
+        """Record a turn boundary action for undo/redo.
+
+        Args:
+            old_turn: (player, turn_number) before turn end
+            new_turn: (player, turn_number) after turn end
+            old_phase: Phase before turn end
+            old_moves_made: List of moves made before turn end
+            old_attacks_this_turn: Attack count before turn end
+            old_attack_target: Attack target before turn end
+            old_units_must_retreat: Set of units that must retreat before turn end
+        """
+        from .undo_redo import TurnBoundary
+        action = TurnBoundary(
+            from_turn=old_turn,
+            to_turn=new_turn,
+            from_phase=old_phase,
+            from_moves_made=old_moves_made,
+            from_attacks_this_turn=old_attacks_this_turn,
+            from_attack_target=old_attack_target,
+            from_units_must_retreat=old_units_must_retreat
+        )
+        self._undo_redo_manager.record_action(action)
 
     # =====================================================================
     # 0.2.0: Lines of Communication (LOC) Network System

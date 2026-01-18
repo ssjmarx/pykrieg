@@ -644,7 +644,48 @@ python -m pykrieg.console --help
 | `load filename.fen` | `l filename.fen` | Load game from file |
 | `help` | `h`, `?` | Show available commands |
 | `mode rich/compat` | - | Switch display mode |
-| `quit` | `q` | Exit the game |
+| `undo [count]` | `u [count]` | Undo last action(s) |
+| `redo [count]` | `r [count]` | Redo last undone action(s) |
+| `set_undo_limit <n>` | - | Set max undo history (0 = unlimited) |
+| `quit` | `q` | Exit to game |
+
+### Undo/Redo System
+
+The console interface includes a full undo/redo system that allows you to:
+
+- Undo mistakes during gameplay
+- Redo actions if you change your mind
+- Set a maximum history limit
+- Undo/redo across turn boundaries
+
+#### Usage Examples
+
+```bash
+# Undo last action
+undo
+
+# Undo last 5 actions
+undo 5
+
+# Redo last undone action
+redo
+
+# Redo last 3 actions
+redo 3
+
+# Set maximum history to 50 actions
+set_undo_limit 50
+
+# Set unlimited history
+set_undo_limit 0
+```
+
+#### Important Notes
+
+- **History Cleared on Save/Load**: Undo history is automatically cleared when you save or load a game. This matches the game's design where saved games represent committed states.
+- **Network Recalculation**: After undo/redo operations, the network system automatically recalculates coverage for both players.
+- **Turn Boundaries**: You can undo past turn boundaries to return to a previous turn, including restoring all turn state (phase, moves made, attacks made, etc.).
+- **Redo Stack Cleared**: Making any new action after undoing clears the redo stack.
 
 ### Console Features
 

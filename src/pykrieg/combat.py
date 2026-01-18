@@ -153,6 +153,11 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
     """
     total_attack = 0
 
+    # Check target terrain for cavalry charge restrictions (0.2.3)
+    # Cavalry charge bonus does NOT apply when attacking units in fortress or mountain pass
+    target_terrain = board.get_terrain(target_row, target_col)
+    charge_restricted = target_terrain in ('FORTRESS', 'MOUNTAIN_PASS')
+
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, attacker)
 
@@ -167,60 +172,65 @@ def calculate_attack_power(board: Board, target_row: int, target_col: int,
             current_col += col_offset
 
         # Step 1: Calculate charge stack FIRST (exclusive calculation)
-        # Find first cavalry adjacent to target
+        # Skip charge stack if terrain restricts cavalry charge
         charge_stack_indices = []
-        if units:
-            first_unit_row, first_unit_col, first_unit = units[0]
-            first_unit_type = getattr(first_unit, 'unit_type', None)
+        if not charge_restricted:
+            # Find first cavalry adjacent to target
+            if units:
+                first_unit_row, first_unit_col, first_unit = units[0]
+                first_unit_type = getattr(first_unit, 'unit_type', None)
 
-            if (first_unit_type == 'CAVALRY' and
-                is_adjacent(first_unit_row, first_unit_col, target_row, target_col)):
-                # First unit is adjacent cavalry - start charge stack
-                charge_stack_indices.append(0)
+                if (first_unit_type == 'CAVALRY' and
+                    is_adjacent(first_unit_row, first_unit_col, target_row, target_col)):
+                    # First unit is adjacent cavalry - start charge stack
+                    charge_stack_indices.append(0)
 
-                # Look for consecutive cavalry (up to 4 total)
-                max_charge_stack = 4
-                for i in range(1, min(len(units), max_charge_stack)):
-                    prev_row, prev_col, prev_unit = units[i - 1]
-                    curr_row, curr_col, curr_unit = units[i]
+                    # Look for consecutive cavalry (up to 4 total)
+                    max_charge_stack = 4
+                    for i in range(1, min(len(units), max_charge_stack)):
+                        prev_row, prev_col, prev_unit = units[i - 1]
+                        curr_row, curr_col, curr_unit = units[i]
 
-                    # Check if units are consecutive (no gap)
-                    prev_index = squares_in_line.index((prev_row, prev_col))
-                    curr_index = squares_in_line.index((curr_row, curr_col))
+                        # Check if units are consecutive (no gap)
+                        prev_index = squares_in_line.index((prev_row, prev_col))
+                        curr_index = squares_in_line.index((curr_row, curr_col))
 
-                    if curr_index - prev_index > 1:
-                        # Gap found - charge stack ends
-                        break
+                        if curr_index - prev_index > 1:
+                            # Gap found - charge stack ends
+                            break
 
-                    # Check for enemy blocker
-                    if is_path_blocked_by_enemy(
-                        board, curr_row, curr_col, target_row, target_col, attacker
-                    ):
-                        # Enemy blocker found - charge stack ends
-                        break
+                        # Check for enemy blocker
+                        if is_path_blocked_by_enemy(
+                            board, curr_row, curr_col, target_row, target_col, attacker
+                        ):
+                            # Enemy blocker found - charge stack ends
+                            break
 
-                    curr_unit_type = getattr(curr_unit, 'unit_type', None)
-                    if curr_unit_type == 'CAVALRY':
-                        charge_stack_indices.append(i)
-                    else:
-                        # Non-cavalry unit - charge stack ends
-                        break
+                        curr_unit_type = getattr(curr_unit, 'unit_type', None)
+                        if curr_unit_type == 'CAVALRY':
+                            charge_stack_indices.append(i)
+                        else:
+                            # Non-cavalry unit - charge stack ends
+                            break
 
         # Step 2: Process charge stack (exempt from range and path blocking)
-        for idx in charge_stack_indices:
-            row, col, unit = units[idx]
+        # Only if charge is not restricted by terrain
+        if not charge_restricted:
+            for idx in charge_stack_indices:
+                row, col, unit = units[idx]
 
-            # Use effective attack (0.2.0) to account for online/offline status
-            if hasattr(unit, 'get_effective_attack'):
-                base_attack = unit.get_effective_attack(board)
-            else:
-                base_attack = getattr(unit, 'attack', 0)
+                # Use effective attack (0.2.0) to account for online/offline status
+                if hasattr(unit, 'get_effective_attack'):
+                    base_attack = unit.get_effective_attack(board)
+                else:
+                    base_attack = getattr(unit, 'attack', 0)
 
-            # Charge stack cavalry get +3 bonus
-            total_attack += base_attack + 3
+                # Charge stack cavalry get +3 bonus
+                total_attack += base_attack + 3
 
         # Step 3: Process remaining units with normal rules (after charge stack)
-        start_normal_index = len(charge_stack_indices)
+        # Start index depends on whether charge was processed
+        start_normal_index = len(charge_stack_indices) if not charge_restricted else 0
         for i in range(start_normal_index, len(units)):
             row, col, unit = units[i]
 
@@ -632,6 +642,11 @@ def preview_combat(board: Board, target_row: int, target_col: int,
     blocked_defense_units = []
     charging_cavalry_count = 0
 
+    # Check target terrain for cavalry charge restrictions (0.2.3)
+    # Cavalry charge bonus does NOT apply when attacking units in fortress or mountain pass
+    target_terrain = board.get_terrain(target_row, target_col)
+    charge_restricted = target_terrain in ('FORTRESS', 'MOUNTAIN_PASS')
+
     # Process attack units
     for direction in get_directions():
         units = get_line_units(board, target_row, target_col, direction, attacker)
@@ -663,7 +678,8 @@ def preview_combat(board: Board, target_row: int, target_col: int,
                 base_attack = getattr(unit, 'attack', 0)
 
             # Check for cavalry charge
-            if unit_type == 'CAVALRY':
+            # Charge is restricted by terrain (0.2.3)
+            if unit_type == 'CAVALRY' and not charge_restricted:
                 if i == 0:
                     if is_adjacent(row, col, target_row, target_col):
                         charging = True

@@ -285,31 +285,7 @@ Pykrieg follows a phased development approach with five major releases (0.1.0 th
 
 ---
 
-### 0.2.3 - Special Rules
-**Milestone**: Edge cases and special mechanics
-
-**Features**:
-- Cavalry charge restrictions (cannot attack fortress/pass)
-- Fortress occupation neutrality rules
-- Arsenal destruction mechanics
-- Special movement edge cases
-- Unit placement restrictions
-- Boundary condition handling
-
-**Testing Requirements**:
-- Special rule implementation tests
-- Edge case scenario tests
-- Boundary condition tests
-- Regression test suite (known scenarios from Debord's book)
-
-**Success Criteria**:
-- All special rules implemented correctly
-- Edge cases handled without crashes
-- Regression test suite passes (100%)
-
----
-
-### 0.2.4 - Game Record Format
+### 0.2.3 - Game Record Format
 **Milestone**: Save/load complete games
 
 **Features**:

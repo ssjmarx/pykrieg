@@ -50,12 +50,13 @@ class Fen:
     SYMBOL_TO_PIECE = constants.SYMBOL_TO_UNIT
 
     @staticmethod
-    def board_to_fen(board: 'Board') -> str:
+    def board_to_fen(board: 'Board', include_turn_state: bool = True) -> str:
         """
         Convert Board object to FEN string (0.2.1 with terrain).
 
         Args:
             board: Board object
+            include_turn_state: If False, omit turn/phase/turn_number/retreats (for KFEN embedding)
 
         Returns:
             FEN string representation
@@ -165,6 +166,10 @@ class Fen:
 
         board_data = '/'.join(rows_fen)
 
+        # If not including turn state (for KFEN embedding), return just board data
+        if not include_turn_state:
+            return board_data
+
         # Build turn info
         turn_char = 'N' if board.turn == constants.PLAYER_NORTH else 'S'
         phase = board.current_phase
@@ -218,6 +223,7 @@ class Fen:
         Supports backward compatibility:
         - 0.1.4: 25 parts (no terrain)
         - 0.2.1: 25 parts (terrain with bracket notation)
+        - Board-only: 20 parts (used in KFEN board_info section)
 
         Args:
             fen_string: FEN string
@@ -228,6 +234,7 @@ class Fen:
         Example:
             "_________________________/.../N/M/[]/1/[]" -> Board
             "_____________________(I)______________/.../N/M/[]/1/[]" -> Board with terrain
+            "_________________________/.../..." -> Board (20 parts, board data only)
         """
         if not isinstance(fen_string, str):
             raise TypeError(f"FEN must be string, got {type(fen_string)}")
@@ -236,26 +243,33 @@ class Fen:
         # (test_fen_whitespace_handling expects leading/trailing spaces to fail)
         fen_string = fen_string.replace('\n', '')
 
+        # Also remove whitespace that appears after "/" characters
+        # This handles KFEN files with formatted FEN strings (e.g., newlines + indentation)
+        # Format like: "row1/\n        row2/" becomes "row1/row2/"
+        import re
+        fen_string = re.sub(r'/\s+', '/', fen_string)
+
         # Fail on leading/trailing whitespace (for test compatibility)
         if fen_string != fen_string.strip():
             raise ValueError("Invalid FEN: has leading/trailing whitespace")
 
         parts = fen_string.split('/')
-        if len(parts) not in [23, 25]:  # 0.1.0 format (23) or 0.1.4/0.2.1 format (25)
-            raise ValueError(f"Invalid FEN: expected 23 or 25 parts, got {len(parts)}")
+        if len(parts) not in [20, 23, 25]:  # 20 parts (board-only), 23 (0.1.0), or 25 (0.1.4/0.2.1)
+            raise ValueError(f"Invalid FEN: expected 20, 23, or 25 parts, got {len(parts)}")
 
         # Parse board data (first 20 parts) - handles terrain with bracket notation
         board_data = parts[:20]
-        turn_char = parts[20]
 
         # Create board
         from .board import Board
         board = Board()
 
-        # Set turn
-        if turn_char not in ['N', 'S']:
-            raise ValueError(f"Invalid turn character: {turn_char}")
-        board._turn = constants.PLAYER_NORTH if turn_char == 'N' else constants.PLAYER_SOUTH
+        # Set turn (only if turn state present)
+        if len(parts) >= 23:
+            turn_char = parts[20]
+            if turn_char not in ['N', 'S']:
+                raise ValueError(f"Invalid turn character: {turn_char}")
+            board._turn = constants.PLAYER_NORTH if turn_char == 'N' else constants.PLAYER_SOUTH
 
         # Parse board rows with terrain support
         for row, row_data in enumerate(board_data):
@@ -381,7 +395,7 @@ class Fen:
                     i += 1
 
         # Parse 0.1.4 turn state if present
-        if len(parts) == 25:
+        if len(parts) >= 23:
             phase = parts[21]
             actions = parts[22]  # Parse actions in 0.2.1
             turn_number = parts[23]
