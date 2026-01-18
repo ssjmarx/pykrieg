@@ -2,8 +2,8 @@
   "kfen_version": "1.0",
   "metadata": {
     "game_name": null,
-    "save_date": "2026-01-17T23:37:31.350646Z",
-    "created_date": "2026-01-17T23:37:31.350667Z",
+    "save_date": "2026-01-18T01:51:06.519316Z",
+    "created_date": "2026-01-18T01:51:06.519307Z",
     "players": null,
     "event": null,
     "result": "ONGOING"
@@ -11,17 +11,1354 @@
   "board_info": {
     "rows": 20,
     "cols": 25,
-    "fen": "_________________________/_______f______A__________/_________mmmm____________/__R____A_m_______________/_________m_______________/____X____(I)_______________/__CC_IIKIm_______________/__CCIWIIIm__________f____/_____I___m__f____________/_________________________/______________iiikc______/______________iiicc______/__f___________iiic_______/___________mmmmmx________/_______________(w)______r__/_______________m_________/_______________m_________/_______________m_________/_________________________/__a___________________a__"
+    "fen": "_________________________/_______f_________________/_________mmmm____________/__R____A_m_______________/________cm_______________/________c(c)x______________/_________m_______________/_________m__________f____/______II_m__[i]____________/_______KII_______________/_________Cii_____________/____III_C_ikw____________/__[X]____C__ii_____________/___________mmmmm_________/_______________p_________/_______________m_________/_______________m_________/_______________m______r__/_________________________/______________________a__"
   },
   "game_state": {
-    "turn_number": 1,
+    "turn_number": 24,
     "current_player": "NORTH",
     "current_phase": "M",
     "pending_retreats": []
   },
-  "turn_history": [],
+  "turn_history": [
+    {
+      "turn_number": 11,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 9,
+            "col": 11
+          },
+          "to": {
+            "row": 9,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015223312,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 8,
+            "col": 11
+          },
+          "to": {
+            "row": 9,
+            "col": 10
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015223504,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 14,
+            "col": 11
+          },
+          "to": {
+            "row": 12,
+            "col": 11
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014799584,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 10
+          },
+          "to": {
+            "row": 10,
+            "col": 9
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348976,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 3,
+            "col": 14
+          },
+          "to": {
+            "row": 1,
+            "col": 14
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": {
+            "row": 1,
+            "col": 14,
+            "owner": "NORTH"
+          }
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 12,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 6,
+            "col": 10
+          },
+          "to": {
+            "row": 7,
+            "col": 11
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348016,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 6,
+            "col": 11
+          },
+          "to": {
+            "row": 7,
+            "col": 12
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348176,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 8
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348656,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 9,
+            "col": 8
+          },
+          "to": {
+            "row": 10,
+            "col": 7
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348416,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 8,
+            "col": 6
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 19,
+            "col": 2
+          },
+          "to": {
+            "row": 17,
+            "col": 2
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 12,
+          "col": 8
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "INFANTRY",
+          "owner": "SOUTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 13,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 1,
+            "col": 14
+          },
+          "to": {
+            "row": 3,
+            "col": 14
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 9,
+            "col": 10
+          },
+          "to": {
+            "row": 8,
+            "col": 10
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015223504,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 9
+          },
+          "to": {
+            "row": 9,
+            "col": 10
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348976,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 9
+          },
+          "to": {
+            "row": 10,
+            "col": 10
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015351536,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 9
+          },
+          "to": {
+            "row": 13,
+            "col": 10
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015351936,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 7,
+          "col": 11
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "INFANTRY",
+          "owner": "NORTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 14,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 10,
+            "col": 8
+          },
+          "to": {
+            "row": 9,
+            "col": 8
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348656,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352176,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 6
+          },
+          "to": {
+            "row": 9,
+            "col": 6
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014797408,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 6
+          },
+          "to": {
+            "row": 11,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 17,
+            "col": 2
+          },
+          "to": {
+            "row": 15,
+            "col": 2
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 14,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 12,
+            "col": 7
+          },
+          "to": {
+            "row": 13,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352176,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 6
+          },
+          "to": {
+            "row": 13,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 5
+          },
+          "to": {
+            "row": 13,
+            "col": 7
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015351776,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 7
+          },
+          "to": {
+            "row": 11,
+            "col": 8
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014797952,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 17,
+            "col": 2
+          },
+          "to": {
+            "row": 15,
+            "col": 2
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 14,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 10,
+            "col": 7
+          },
+          "to": {
+            "row": 9,
+            "col": 8
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348416,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 7
+          },
+          "to": {
+            "row": 11,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352176,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 7
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014797952,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 6
+          },
+          "to": {
+            "row": 12,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 5
+          },
+          "to": {
+            "row": 13,
+            "col": 7
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015351776,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 14,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 14,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 10,
+            "col": 8
+          },
+          "to": {
+            "row": 9,
+            "col": 8
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348656,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352176,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 6
+          },
+          "to": {
+            "row": 10,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 6
+          },
+          "to": {
+            "row": 9,
+            "col": 6
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014797408,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 17,
+            "col": 2
+          },
+          "to": {
+            "row": 15,
+            "col": 2
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 9,
+          "col": 9
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "CAVALRY",
+          "owner": "SOUTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 15,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 4,
+            "col": 14
+          },
+          "to": {
+            "row": 6,
+            "col": 12
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297472,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 3,
+            "col": 14
+          },
+          "to": {
+            "row": 5,
+            "col": 13
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 14
+          },
+          "to": {
+            "row": 9,
+            "col": 14
+          },
+          "unit_type": "SWIFT_RELAY",
+          "unit_id": 139729014799040,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 14
+          },
+          "to": {
+            "row": 9,
+            "col": 12
+          },
+          "unit_type": "SWIFT_RELAY",
+          "unit_id": 139729014799040,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 12
+          },
+          "to": {
+            "row": 10,
+            "col": 12
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014798768,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 10
+          },
+          "to": {
+            "row": 11,
+            "col": 9
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015352016,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 10,
+          "col": 9
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "CAVALRY",
+          "owner": "NORTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 16,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 9,
+            "col": 6
+          },
+          "to": {
+            "row": 7,
+            "col": 7
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014797408,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 8
+          },
+          "to": {
+            "row": 12,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 5
+          },
+          "to": {
+            "row": 13,
+            "col": 7
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015351776,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 15,
+            "col": 2
+          },
+          "to": {
+            "row": 14,
+            "col": 4
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 8
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348416,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 11,
+          "col": 9
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "INFANTRY",
+          "owner": "SOUTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 17,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 5,
+            "col": 13
+          },
+          "to": {
+            "row": 5,
+            "col": 11
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 6,
+            "col": 12
+          },
+          "to": {
+            "row": 5,
+            "col": 10
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297472,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 8,
+            "col": 10
+          },
+          "to": {
+            "row": 6,
+            "col": 10
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015223504,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 9,
+            "col": 12
+          },
+          "to": {
+            "row": 7,
+            "col": 10
+          },
+          "unit_type": "SWIFT_RELAY",
+          "unit_id": 139729014799040,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 14,
+            "col": 22
+          },
+          "to": {
+            "row": 15,
+            "col": 22
+          },
+          "unit_type": "RELAY",
+          "unit_id": 139729014799856,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 6,
+          "col": 11
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "INFANTRY",
+          "owner": "NORTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 18,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 7,
+            "col": 7
+          },
+          "to": {
+            "row": 5,
+            "col": 9
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014797408,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 14,
+            "col": 4
+          },
+          "to": {
+            "row": 12,
+            "col": 5
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 13,
+            "col": 7
+          },
+          "to": {
+            "row": 12,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015351776,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 8
+          },
+          "to": {
+            "row": 11,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352096,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 7
+          },
+          "to": {
+            "row": 10,
+            "col": 7
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014797952,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 19,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 5,
+            "col": 11
+          },
+          "to": {
+            "row": 4,
+            "col": 10
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 19,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 15,
+            "col": 22
+          },
+          "to": {
+            "row": 16,
+            "col": 22
+          },
+          "unit_type": "RELAY",
+          "unit_id": 139729014799856,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 13,
+            "col": 10
+          },
+          "to": {
+            "row": 12,
+            "col": 10
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015351936,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 11
+          },
+          "to": {
+            "row": 11,
+            "col": 12
+          },
+          "unit_type": "SWIFT_CANNON",
+          "unit_id": 139729014799584,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 11,
+            "col": 11
+          },
+          "to": {
+            "row": 12,
+            "col": 11
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015351696,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 12
+          },
+          "to": {
+            "row": 11,
+            "col": 11
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014798768,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 5,
+          "col": 9
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "SWIFT_CANNON",
+          "owner": "NORTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 20,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 12,
+            "col": 9
+          },
+          "to": {
+            "row": 10,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015351776,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 8
+          },
+          "to": {
+            "row": 9,
+            "col": 9
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348416,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 9,
+            "col": 7
+          },
+          "to": {
+            "row": 8,
+            "col": 7
+          },
+          "unit_type": "INFANTRY",
+          "unit_id": 139729015348336,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 10,
+            "col": 7
+          },
+          "to": {
+            "row": 9,
+            "col": 7
+          },
+          "unit_type": "CANNON",
+          "unit_id": 139729014797952,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 12,
+            "col": 5
+          },
+          "to": {
+            "row": 12,
+            "col": 7
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015352256,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": {
+        "target": {
+          "row": 9,
+          "col": 10
+        },
+        "outcome": "CAPTURE",
+        "captured_unit": {
+          "unit_type": "INFANTRY",
+          "owner": "SOUTH"
+        },
+        "retreat_positions": []
+      },
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 21,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [
+        {
+          "from": {
+            "row": 16,
+            "col": 22
+          },
+          "to": {
+            "row": 17,
+            "col": 22
+          },
+          "unit_type": "RELAY",
+          "unit_id": 139729014799856,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 5,
+            "col": 11
+          },
+          "to": {
+            "row": 5,
+            "col": 9
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297024,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 6,
+            "col": 10
+          },
+          "to": {
+            "row": 5,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015223504,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 5,
+            "col": 10
+          },
+          "to": {
+            "row": 4,
+            "col": 8
+          },
+          "unit_type": "CAVALRY",
+          "unit_id": 139729015297472,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        },
+        {
+          "from": {
+            "row": 7,
+            "col": 10
+          },
+          "to": {
+            "row": 5,
+            "col": 10
+          },
+          "unit_type": "SWIFT_RELAY",
+          "unit_id": 139729014799040,
+          "was_retreat": false,
+          "destroyed_arsenal": null
+        }
+      ],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 22,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 23,
+      "player": "SOUTH",
+      "phase": "M",
+      "moves": [],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": {
+        "captured_units": []
+      }
+    },
+    {
+      "turn_number": 24,
+      "player": "NORTH",
+      "phase": "M",
+      "moves": [],
+      "phase_change": null,
+      "attack": null,
+      "end_turn": null
+    }
+  ],
   "undo_redo": {
     "max_history": 100,
-    "current_index": 0
+    "current_index": 75
   }
 }

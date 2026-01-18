@@ -74,8 +74,13 @@ docs/_templates/
 # OS
 .DS_Store
 Thumbs.db
-*.ignore*
+
+# Workspace
+.clinerules
+memory-bank/
+*.ignore
 
 # dont upload these
 *.log
 *.bak
+pykrieg_save.kfen
