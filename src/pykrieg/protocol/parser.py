@@ -1,7 +1,7 @@
 # UCI command parser
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List
 
 from pykrieg.protocol.exceptions import (
     ParseError,
@@ -18,14 +18,14 @@ class ParsedCommand:
     """Parsed command with its parameters."""
 
     command: UCICommand
-    parameters: dict[str, Any]
+    parameters: Dict[str, Any]
 
 
 class ProtocolParser:
     """Parse UCI-like protocol commands."""
 
     def __init__(self) -> None:
-        self._command_map: dict[str, Callable[[list[str]], ParsedCommand]] = {
+        self._command_map: Dict[str, Callable[[List[str]], ParsedCommand]] = {
             "uci": self._parse_uci,
             "debug": self._parse_debug,
             "isready": self._parse_isready,
@@ -75,13 +75,13 @@ class ProtocolParser:
         parser_func = self._command_map[command_name]
         return parser_func(parts[1:])
 
-    def _parse_uci(self, args: list[str]) -> ParsedCommand:
+    def _parse_uci(self, args: List[str]) -> ParsedCommand:
         """Parse 'uci' command (no arguments)."""
         if args:
             raise ParseError("uci", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="uci", parameters={})
 
-    def _parse_debug(self, args: list[str]) -> ParsedCommand:
+    def _parse_debug(self, args: List[str]) -> ParsedCommand:
         """Parse 'debug [on|off]' command."""
         if len(args) != 1:
             raise ParseError("debug", "Expected 'on' or 'off'")
@@ -90,13 +90,13 @@ class ProtocolParser:
             raise ParseError("debug", f"Invalid mode '{mode}', expected 'on' or 'off'")
         return ParsedCommand(command="debug", parameters={"mode": mode})
 
-    def _parse_isready(self, args: list[str]) -> ParsedCommand:
+    def _parse_isready(self, args: List[str]) -> ParsedCommand:
         """Parse 'isready' command (no arguments)."""
         if args:
             raise ParseError("isready", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="isready", parameters={})
 
-    def _parse_setoption(self, args: list[str]) -> ParsedCommand:
+    def _parse_setoption(self, args: List[str]) -> ParsedCommand:
         """Parse 'setoption name <name> value <value>' command."""
         # Expected format: setoption name <name> value <value>
         if len(args) < 4:
@@ -126,13 +126,13 @@ class ProtocolParser:
 
         return ParsedCommand(command="setoption", parameters={"name": name, "value": value})
 
-    def _parse_ucinewgame(self, args: list[str]) -> ParsedCommand:
+    def _parse_ucinewgame(self, args: List[str]) -> ParsedCommand:
         """Parse 'ucinewgame' command (no arguments)."""
         if args:
             raise ParseError("ucinewgame", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="ucinewgame", parameters={})
 
-    def _parse_position(self, args: list[str]) -> ParsedCommand:
+    def _parse_position(self, args: List[str]) -> ParsedCommand:
         """Parse position command.
 
         Formats:
@@ -153,7 +153,7 @@ class ProtocolParser:
                 f"Invalid position type '{position_type}', expected 'startpos' or 'kfen'",
             )
 
-        params: dict[str, Any] = {"type": position_type}
+        params: Dict[str, Any] = {"type": position_type}
 
         # Parse position value (if not startpos)
         if position_type != "startpos":
@@ -176,7 +176,7 @@ class ProtocolParser:
 
         return ParsedCommand(command="position", parameters=params)
 
-    def _parse_go(self, args: list[str]) -> ParsedCommand:
+    def _parse_go(self, args: List[str]) -> ParsedCommand:
         """Parse 'go' command with various parameters."""
         go_params = GoParameters(
             depth=None, nodes=None, movetime=None, infinite=False, ponder=False
@@ -232,37 +232,37 @@ class ProtocolParser:
 
         return ParsedCommand(command="go", parameters=go_params.__dict__)
 
-    def _parse_stop(self, args: list[str]) -> ParsedCommand:
+    def _parse_stop(self, args: List[str]) -> ParsedCommand:
         """Parse 'stop' command (no arguments)."""
         if args:
             raise ParseError("stop", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="stop", parameters={})
 
-    def _parse_quit(self, args: list[str]) -> ParsedCommand:
+    def _parse_quit(self, args: List[str]) -> ParsedCommand:
         """Parse 'quit' command (no arguments)."""
         if args:
             raise ParseError("quit", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="quit", parameters={})
 
-    def _parse_status(self, args: list[str]) -> ParsedCommand:
+    def _parse_status(self, args: List[str]) -> ParsedCommand:
         """Parse 'status' command (no arguments)."""
         if args:
             raise ParseError("status", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="status", parameters={})
 
-    def _parse_network(self, args: list[str]) -> ParsedCommand:
+    def _parse_network(self, args: List[str]) -> ParsedCommand:
         """Parse 'network' command (no arguments)."""
         if args:
             raise ParseError("network", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="network", parameters={})
 
-    def _parse_victory(self, args: list[str]) -> ParsedCommand:
+    def _parse_victory(self, args: List[str]) -> ParsedCommand:
         """Parse 'victory' command (no arguments)."""
         if args:
             raise ParseError("victory", f"Unexpected arguments: {' '.join(args)}")
         return ParsedCommand(command="victory", parameters={})
 
-    def _parse_phase(self, args: list[str]) -> ParsedCommand:
+    def _parse_phase(self, args: List[str]) -> ParsedCommand:
         """Parse 'phase [movement|battle]' command."""
         if args:
             phase = args[0].lower()
@@ -273,7 +273,7 @@ class ProtocolParser:
             return ParsedCommand(command="phase", parameters={"phase": phase})
         return ParsedCommand(command="phase", parameters={})
 
-    def _parse_retreats(self, args: list[str]) -> ParsedCommand:
+    def _parse_retreats(self, args: List[str]) -> ParsedCommand:
         """Parse 'retreats' command (no arguments)."""
         if args:
             raise ParseError("retreats", f"Unexpected arguments: {' '.join(args)}")

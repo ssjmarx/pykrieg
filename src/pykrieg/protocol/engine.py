@@ -1,7 +1,7 @@
 # Base engine interface for UCI protocol
 
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from pykrieg.protocol.uci import EngineOption, GoParameters, InfoParameters
 
@@ -87,7 +87,7 @@ class UCIEngine(ABC):
         self._debug("New game started")
         # Subclasses can override for game-specific initialization
 
-    def position(self, position_type: str, value: Optional[str], moves: list[str]) -> None:
+    def position(self, position_type: str, value: Optional[str], moves: List[str]) -> None:
         """Set board position.
 
         Args:

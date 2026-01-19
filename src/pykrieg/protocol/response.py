@@ -1,6 +1,6 @@
 # Response generation for UCI protocol
 
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from pykrieg.protocol.uci import EngineOption, InfoParameters, ProtocolPhase
 
@@ -217,7 +217,7 @@ class ResponseGenerator:
         """
         return f"phase {current_phase}"
 
-    def retreats(self, retreat_positions: list[str]) -> str:
+    def retreats(self, retreat_positions: List[str]) -> str:
         """Generate retreats response.
 
         Args:
