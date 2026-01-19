@@ -84,7 +84,10 @@ pip install pykrieg=={version}
 
 """
 
-    footer = """
+    footer = f"""
+
+---
+
 ### Documentation
 - [API Documentation](https://pykrieg.readthedocs.io/)
 - [GitHub Repository](https://github.com/ssjmarx/pykrieg)
