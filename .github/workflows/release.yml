@@ -70,11 +70,14 @@ jobs:
         run: |
           TAG=${GITHUB_REF#refs/tags/}
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          # Extract version without 'v' prefix for changelog extraction
+          VERSION=${TAG#v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
       
       - name: Generate Release Notes from CHANGELOG
         id: release_notes
         run: |
-          python scripts/extract_changelog.py ${{ steps.tag_version.outputs.tag }} > release_notes.txt
+          python scripts/extract_changelog.py ${{ steps.tag_version.outputs.version }} > release_notes.txt
           echo "notes=$(cat release_notes.txt)" >> $GITHUB_OUTPUT
       
       - name: Create GitHub Release
