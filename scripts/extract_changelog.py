@@ -94,7 +94,7 @@ pip install pykrieg=={version}
 - [Protocol Specification](https://github.com/ssjmarx/pykrieg/blob/main/PROTOCOL-SPECIFICATION.md)
 - [KFEN Specification](https://github.com/ssjmarx/pykrieg/blob/main/KFEN-SPECIFICATION.md)
 
-### Installation
+### Installation Options
 ```bash
 # Install from PyPI
 pip install pykrieg
