@@ -16,13 +16,18 @@ Introduction
 
 Pykrieg is a Python implementation of Guy Debord's strategic tabletop game *Le Jeu de la Guerre*. This library provides a clean, extensible API for representing game states, managing territories, and serializing board positions.
 
-**Version 0.1.0 Features:**
+**Version 0.3.0 Features:**
 
-- 20×25 board representation
-- Territory system (North/South)
-- Coordinate system (tuple, spreadsheet-style, and index formats)
-- FEN serialization format for board states
-- Basic game state management
+- Complete game rules implementation (movement, combat, turns)
+- Lines of Communication (LOC) network system
+- Terrain system (mountains, passes, fortresses, arsenals)
+- Victory condition detection
+- KFEN game record format with history tracking
+- UCI-like protocol for engine communication
+- Console interface with mouse support
+- FEN and KFEN serialization formats
+- Undo/redo functionality
+- 71%+ test coverage
 
 Quick Start
 -----------
@@ -39,8 +44,8 @@ Basic usage::
    board = Board()
    
    # Add pieces
-   board.set_piece(0, 0, {'type': 'INFANTRY', 'owner': 'NORTH'})
-   board.set_piece(19, 24, {'type': 'INFANTRY', 'owner': 'SOUTH'})
+   board.create_and_place_unit(0, 0, 'INFANTRY', 'NORTH')
+   board.create_and_place_unit(19, 24, 'INFANTRY', 'SOUTH')
    
    # Serialize to FEN
    fen = Fen.board_to_fen(board)
@@ -49,6 +54,11 @@ Basic usage::
    # Deserialize from FEN
    board2 = Fen.fen_to_board(fen)
 
-For more information, see the GitHub repository: https://github.com/ssjmarx/pykrieg
+For more information, see:
 
-For the full documentation, visit https://pykrieg.readthedocs.io/en/latest/
+- GitHub repository: https://github.com/ssjmarx/pykrieg
+- Protocol Specification: https://github.com/ssjmarx/pykrieg/blob/main/PROTOCOL-SPECIFICATION.md
+- KFEN Specification: https://github.com/ssjmarx/pykrieg/blob/main/KFEN-SPECIFICATION.md
+- Usage Guide: https://github.com/ssjmarx/pykrieg/blob/main/USAGE.md
+
+For full API documentation, visit https://pykrieg.readthedocs.io/en/latest/

@@ -369,6 +369,7 @@ class TestKFENValidation(unittest.TestCase):
     def test_validate_valid_turn_sequence(self):
         """Test validation of valid turn sequence."""
         document = KFENDocument(
+            game_state=KFENGameState(turn_number=3, current_player="NORTH"),
             turn_history=[
                 KFENTurn(turn_number=1, player="NORTH", phase="M"),
                 KFENTurn(turn_number=2, player="SOUTH", phase="M"),
@@ -380,16 +381,17 @@ class TestKFENValidation(unittest.TestCase):
         self.assertIsNone(error)
 
     def test_validate_invalid_turn_number(self):
-        """Test validation detects invalid turn numbers."""
+        """Test validation detects invalid turn numbers (turn number < 1)."""
         document = KFENDocument(
+            game_state=KFENGameState(turn_number=3, current_player="SOUTH"),
             turn_history=[
                 KFENTurn(turn_number=1, player="NORTH", phase="M"),
-                KFENTurn(turn_number=3, player="SOUTH", phase="M"),  # Skipped turn 2
+                KFENTurn(turn_number=0, player="SOUTH", phase="M"),  # Invalid: turn 0
             ]
         )
         is_valid, error = validate_history(document)
         self.assertFalse(is_valid)
-        self.assertIn("expected turn number 2", error)
+        self.assertIn("must be >= 1", error)
 
     def test_validate_too_many_moves(self):
         """Test validation detects too many moves in a turn."""
@@ -419,10 +421,10 @@ class TestKFENValidation(unittest.TestCase):
             player="INVALID",  # Invalid player
             phase="M"
         )
-        document = KFENDocument(turn_history=[turn])
+        document = KFENDocument(game_state=KFENGameState(turn_number=1, current_player="INVALID"), turn_history=[turn])
         is_valid, error = validate_history(document)
         self.assertFalse(is_valid)
-        self.assertIn("expected player", error)
+        self.assertIn("invalid player", error)
 
     def test_validate_invalid_phase(self):
         """Test validation detects invalid phase."""

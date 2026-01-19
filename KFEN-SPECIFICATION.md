@@ -4,8 +4,8 @@
 KFEN is a string format for representing Pykrieg board states, moves, and attacks. It supports arbitrarily sized boards using spreadsheet-style notation.
 
 **Version**: 2.0  
-**Last Updated**: 2025-01-09  
-**Status**: Final Specification
+**Last Updated**: 2026-01-18  
+**Status**: Final Specification (Compatible with v0.3.0+)
 
 ---
 

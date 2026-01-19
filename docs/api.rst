@@ -137,3 +137,36 @@ Turn State
 .. automethod:: pykrieg.Board.turn_number
 
 .. automethod:: pykrieg.Board.current_phase
+
+Protocol Module
+---------------
+
+The protocol module implements a UCI-like communication protocol for engine-frontend communication.
+
+Protocol Engine
+~~~~~~~~~~~~~~~~
+
+.. automodule:: pykrieg.protocol.engine
+   :members:
+   :undoc-members:
+
+Protocol Parser
+~~~~~~~~~~~~~~~~
+
+.. automodule:: pykrieg.protocol.parser
+   :members:
+   :undoc-members:
+
+Protocol Response
+~~~~~~~~~~~~~~~~~
+
+.. automodule:: pykrieg.protocol.response
+   :members:
+   :undoc-members:
+
+Protocol Types
+~~~~~~~~~~~~~~
+
+.. automodule:: pykrieg.protocol.uci
+   :members:
+   :undoc-members:

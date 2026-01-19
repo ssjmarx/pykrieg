@@ -522,59 +522,16 @@ def _dict_to_document(data: Dict[str, Any]) -> KFENDocument:
 # KFEN Validation
 # =====================================================================
 
-def validate_history(document: KFENDocument) -> Tuple[bool, Optional[str]]:
+def _validate_game_state(document: KFENDocument) -> Tuple[bool, Optional[str]]:
     """
-    Validate turn history in KFEN document.
+    Validate game state fields in KFEN document.
 
     Args:
         document: KFENDocument to validate
 
     Returns:
         Tuple of (is_valid, error_message)
-        - is_valid: True if history is valid, False otherwise
-        - error_message: Error description if invalid, None if valid
     """
-    # Check version compatibility
-    if document.kfen_version not in ["1.0"]:
-        return False, f"Unsupported KFEN version: {document.kfen_version}"
-
-    # Validate board dimensions
-    if document.board_info.rows <= 0 or document.board_info.cols <= 0:
-        return False, "Invalid board dimensions"
-
-    # Validate turn sequence
-    expected_turn = 1
-    expected_player = "NORTH"
-
-    for i, turn in enumerate(document.turn_history):
-        # Check turn number
-        if turn.turn_number != expected_turn:
-            return False, f"Turn {i}: expected turn number {expected_turn}, got {turn.turn_number}"
-
-        # Check player alternation
-        if turn.player != expected_player:
-            return False, f"Turn {i}: expected player {expected_player}, got {turn.player}"
-
-        # Check move count (max 5)
-        if len(turn.moves) > 5:
-            return False, f"Turn {i}: too many moves ({len(turn.moves)}, max 5)"
-
-        # Check attack count (0 or 1)
-        if turn.attack is not None and len(turn.moves) > 5:
-            return False, f"Turn {i}: cannot have attack after 5 moves"
-
-        # Validate player string
-        if turn.player not in ["NORTH", "SOUTH"]:
-            return False, f"Turn {i}: invalid player '{turn.player}'"
-
-        # Validate phase
-        if turn.phase not in ["M", "B"]:
-            return False, f"Turn {i}: invalid phase '{turn.phase}'"
-
-        # Advance to next turn
-        expected_turn += 1
-        expected_player = "SOUTH" if expected_player == "NORTH" else "NORTH"
-
     # Validate game state consistency
     if document.game_state.turn_number < 1:
         msg = "Invalid game state: turn_number must be >= 1"
@@ -595,6 +552,88 @@ def validate_history(document: KFENDocument) -> Tuple[bool, Optional[str]]:
     valid_results = ["ONGOING", "NORTH_WINS", "SOUTH_WINS", "DRAW"]
     if document.metadata.result not in valid_results:
         return False, f"Invalid metadata result: {document.metadata.result}"
+
+    return True, None
+
+
+def validate_history(document: KFENDocument) -> Tuple[bool, Optional[str]]:
+    """
+    Validate turn history in KFEN document.
+
+    Allows incomplete/partial histories (e.g., turns 8-11 when on turn 11).
+    Validates internal consistency rather than requiring sequential from turn 1.
+
+    Args:
+        document: KFENDocument to validate
+
+    Returns:
+        Tuple of (is_valid, error_message)
+        - is_valid: True if history is valid, False otherwise
+        - error_message: Error description if invalid, None if valid
+    """
+    # Check version compatibility
+    if document.kfen_version not in ["1.0"]:
+        return False, f"Unsupported KFEN version: {document.kfen_version}"
+
+    # Validate board dimensions
+    if document.board_info.rows <= 0 or document.board_info.cols <= 0:
+        return False, "Invalid board dimensions"
+
+    # If no history, only validate game state
+    if not document.turn_history:
+        return _validate_game_state(document)
+
+    # Validate turn sequence (allow gaps, require internal consistency)
+    for i, turn in enumerate(document.turn_history):
+        # Check turn number is positive
+        if turn.turn_number < 1:
+            return False, f"Turn {i}: turn_number must be >= 1, got {turn.turn_number}"
+
+        # Validate player string
+        if turn.player not in ["NORTH", "SOUTH"]:
+            return False, f"Turn {i}: invalid player '{turn.player}'"
+
+        # Validate phase
+        if turn.phase not in ["M", "B"]:
+            return False, f"Turn {i}: invalid phase '{turn.phase}'"
+
+        # Check move count (max 5)
+        if len(turn.moves) > 5:
+            return False, f"Turn {i}: too many moves ({len(turn.moves)}, max 5)"
+
+        # Check attack count (0 or 1)
+        if turn.attack is not None and len(turn.moves) > 5:
+            return False, f"Turn {i}: cannot have attack after 5 moves"
+
+        # Verify players alternate between consecutive turns
+        if i > 0:
+            prev_turn = document.turn_history[i - 1]
+            # If these are consecutive turn numbers, players must alternate
+            if prev_turn.turn_number + 1 == turn.turn_number:
+                expected_player = "SOUTH" if prev_turn.player == "NORTH" else "NORTH"
+                if turn.player != expected_player:
+                    return False, f"Turn {i}: expected player {expected_player}, got {turn.player}"
+
+    # Validate game state consistency
+    is_valid, error = _validate_game_state(document)
+    if not is_valid:
+        return False, error
+
+    # If history exists, verify game_state is consistent with last turn
+    if document.turn_history:
+        last_turn = document.turn_history[-1]
+
+        # Check if turn_number is not less than last turn
+        if document.game_state.turn_number < last_turn.turn_number:
+            msg = (f"game_state.turn_number ({document.game_state.turn_number}) "
+                    f"is less than last turn ({last_turn.turn_number})")
+            return False, msg
+
+        # Note: We allow game_state.turn_number > last_turn.turn_number
+        # This happens when we're in the middle of a turn (no TurnBoundary yet)
+
+        # Check if current_player is consistent
+        # For now, be lenient - partial histories may have inconsistencies here
 
     return True, None
 

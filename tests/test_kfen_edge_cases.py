@@ -272,17 +272,19 @@ class TestKFENInvalidInputs(unittest.TestCase):
     """Test handling of invalid inputs."""
 
     def test_invalid_turn_sequence(self):
-        """Test validation detects invalid turn sequence."""
+        """Test validation detects invalid turn sequence (turn_number < 1)."""
+        from pykrieg.kfen import KFENGameState
         doc = KFENDocument(
+            game_state=KFENGameState(turn_number=3, current_player="SOUTH"),
             turn_history=[
                 KFENTurn(turn_number=1, player="NORTH", phase="M"),
-                KFENTurn(turn_number=3, player="NORTH", phase="M"),  # Skipped turn 2
+                KFENTurn(turn_number=0, player="SOUTH", phase="M"),  # Invalid: turn 0
             ]
         )
 
         is_valid, error = validate_history(doc)
         self.assertFalse(is_valid)
-        self.assertIn("expected turn number", error.lower())
+        self.assertIn("must be >= 1", error)
 
     def test_player_alternation_violation(self):
         """Test validation detects player alternation violation."""
@@ -299,7 +301,9 @@ class TestKFENInvalidInputs(unittest.TestCase):
 
     def test_invalid_player_string(self):
         """Test validation detects invalid player string."""
+        from pykrieg.kfen import KFENGameState
         doc = KFENDocument(
+            game_state=KFENGameState(turn_number=1, current_player="INVALID"),
             turn_history=[
                 KFENTurn(turn_number=1, player="INVALID", phase="M"),
             ]
@@ -307,7 +311,7 @@ class TestKFENInvalidInputs(unittest.TestCase):
 
         is_valid, error = validate_history(doc)
         self.assertFalse(is_valid)
-        self.assertIn("expected player", error.lower())
+        self.assertIn("invalid player", error.lower())
 
     def test_invalid_phase_string(self):
         """Test validation detects invalid phase string."""

@@ -83,16 +83,18 @@ print(board.get_territory(19, 24))  # 'SOUTH' (south side)
 ### Creating Units
 
 ```python
-from pykrieg import Infantry, Cavalry, Cannon, Relay, Depot, Train
+from pykrieg import Infantry, Cavalry, Cannon, Relay, SwiftCannon, SwiftRelay
 
 # Create units directly
 infantry = Infantry('NORTH')
 cavalry = Cavalry('SOUTH')
 cannon = Cannon('NORTH')
 relay = Relay('NORTH')
-depot = Depot('NORTH')
-train = Train('SOUTH')
+swift_cannon = SwiftCannon('NORTH')
+swift_relay = SwiftRelay('SOUTH')
 ```
+
+**Note**: Arsenals are terrain structures, not units. Use `board.set_arsenal()` to place an arsenal.
 
 ### Placing Units
 
@@ -120,7 +122,7 @@ board.place_unit(12, 12, cannon)
 ### Unit Properties
 
 ```python
-from pykrieg import Board, get_movement_range, can_move, get_unit_symbol
+from pykrieg import Board, get_movement_range, can_move
 
 unit = board.get_unit(5, 10)
 
@@ -128,9 +130,9 @@ unit = board.get_unit(5, 10)
 print(get_movement_range(unit))  # 0, 1, or 2
 print(can_move(unit))  # True or False
 
-# Unit symbol for display
-print(get_unit_symbol(unit, 'rich'))  # Unicode symbol
-print(get_unit_symbol(unit, 'compat'))  # ASCII character
+# Unit type and owner
+print(unit.unit_type)  # Unit type string
+print(unit.owner)  # 'NORTH' or 'SOUTH'
 ```
 
 ---
@@ -434,13 +436,13 @@ See [KFEN-SPECIFICATION.md](KFEN-SPECIFICATION.md) for complete format details.
 
 ## Lines of Communication (LOC) Network
 
-The Lines of Communication system (v0.2.0) implements network connectivity rules where units must be connected to Arsenals through lines of sight to function properly.
+The Lines of Communication system (v0.3.0) implements network connectivity rules where units must be connected to Arsenals through lines of sight to function properly.
 
 ### Network States
 
 The network system has two states:
 
-1. **Disabled (Default)**: All units are considered "online" and can move, attack, and defend normally. This is the pre-0.2.0 behavior and provides backward compatibility.
+1. **Disabled (Default)**: All units are considered "online" and can move, attack, and defend normally. This is the pre-0.3.0 behavior and provides backward compatibility.
 
 2. **Enabled**: Units must be within network coverage to function. Arsenals emit signals along 8 directional rays; Relays and Swift Relays can extend these signals. Units not connected have zero attack/defense/range (except Relays which can still move and defend).
 
@@ -545,14 +547,14 @@ print(relay.get_effective_movement(board))  # 1 (Relays can move offline)
 
 ### Backward Compatibility
 
-If you don't call `calculate_network()`, the system uses the optimistic default (all units online):
+If you don't call `enable_networks()`, the system uses the optimistic default (all units online):
 
 ```python
 from pykrieg import Board
 
 board = Board()
 
-# No calculate_network() call = networks disabled
+# No enable_networks() call = networks disabled
 board.create_and_place_unit(5, 10, 'INFANTRY', 'NORTH')
 
 # All units considered online
@@ -614,7 +616,7 @@ print(f"North has {len(active_relays)} active relays")
 
 ## Console Interface
 
-Pykrieg includes a full-featured console interface for playing games interactively (v0.2.0).
+Pykrieg includes a full-featured console interface for playing games interactively (v0.3.0).
 
 ### Launching the Console
 
@@ -622,8 +624,8 @@ Pykrieg includes a full-featured console interface for playing games interactive
 # Auto-detect terminal capabilities
 python -m pykrieg.console
 
-# Force rich mode (Unicode + colors)
-python -m pykrieg.console --mode=rich
+# Force curses mode (Unicode + colors)
+python -m pykrieg.console --mode=curses
 
 # Force compatibility mode (ASCII only)
 python -m pykrieg.console --mode=compat
@@ -640,10 +642,12 @@ python -m pykrieg.console --help
 | `attack 5,12` | `a 5,12` | Attack a target position |
 | `pass` | `p` | Skip attack phase |
 | `end` | `e` | End turn |
+| `phase battle` | `ph b` | Switch to battle phase |
+| `phase movement` | `ph m` | Switch to movement phase |
 | `save filename.fen` | `s filename.fen` | Save game to file |
 | `load filename.fen` | `l filename.fen` | Load game from file |
 | `help` | `h`, `?` | Show available commands |
-| `mode rich/compat` | - | Switch display mode |
+| `mode curses/compat` | - | Switch display mode |
 | `undo [count]` | `u [count]` | Undo last action(s) |
 | `redo [count]` | `r [count]` | Redo last undone action(s) |
 | `set_undo_limit <n>` | - | Set max undo history (0 = unlimited) |
@@ -691,39 +695,11 @@ set_undo_limit 0
 
 - **Automatic Terminal Detection**: Auto-detects Unicode and color support
 - **Two Display Modes**:
-  - Rich mode: Unicode symbols with ANSI colors (modern terminals)
+  - Curses mode: Unicode symbols with ANSI colors (modern terminals)
   - Compatibility mode: ASCII characters (older terminals)
 - **Mouse Support**: Click-to-coordinate entry (requires `prompt_toolkit`)
 - **Command Buffering**: Queue multiple commands before execution
 - **Copy/Paste Support**: Multi-line and semicolon-separated commands
-
-### Programmatic Console Use
-
-You can also use the console interface components programmatically:
-
-```python
-from pykrieg.console import ConsoleGame, DisplayMode
-
-# Create a game with specific display mode
-game = ConsoleGame(display_mode='compatibility')
-
-# Run the main loop
-game.run()
-
-# Or use components individually
-from pykrieg.console import BoardDisplay, MouseHandler
-from pykrieg import Board
-
-board = Board()
-display = BoardDisplay(DisplayMode.RICH)
-handler = MouseHandler(board, display)
-
-# Render board
-print(display.render(board))
-
-# Handle mouse clicks
-result = handler.handle_mouse_click(5, 10)
-```
 
 ### Console API
 
@@ -734,28 +710,12 @@ from pykrieg.console import BoardDisplay, DisplayMode
 from pykrieg import Board
 
 # Create display
-display = BoardDisplay(DisplayMode.RICH)
+display = BoardDisplay(DisplayMode.CURSES)
 board = Board()
 
 # Render board to string
 output = display.render(board)
 print(output)
-```
-
-#### MouseHandler
-
-```python
-from pykrieg.console import MouseHandler
-from pykrieg import Board
-
-board = Board()
-display = BoardDisplay(DisplayMode.RICH)
-handler = MouseHandler(board, display)
-
-# Handle mouse click
-# Returns None if incomplete selection
-# Returns command string if complete (e.g., "5,10 6,10")
-result = handler.handle_mouse_click(5, 10)
 ```
 
 #### CommandBuffer
@@ -791,6 +751,12 @@ command = parse_command("move 5,10 6,10")
 from pykrieg import Board
 board = Board()
 is_valid, error = validate_command(board, command)
+```
+
+**Note**: `get_help_text()` is available for programmatic access but is an internal function:
+```python
+from pykrieg.console.parser import get_help_text
+help_text = get_help_text()
 ```
 
 ---

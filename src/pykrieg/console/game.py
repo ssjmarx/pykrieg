@@ -102,7 +102,7 @@ class ConsoleGame:
             "",
             "╔══════════════════════════════════════════════════╗",
             "║                                                  ║",
-            "║        PYKRIEG - Console Interface v0.2.3        ║",
+            "║        PYKRIEG - Console Interface v0.3.0        ║",
             "║         Guy Debord's Le Jeu de la Guerre         ║",
             "║                                                  ║",
             "╚══════════════════════════════════════════════════╝",

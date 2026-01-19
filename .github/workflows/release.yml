@@ -71,6 +71,12 @@ jobs:
           TAG=${GITHUB_REF#refs/tags/}
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
       
+      - name: Generate Release Notes from CHANGELOG
+        id: release_notes
+        run: |
+          python scripts/extract_changelog.py ${{ steps.tag_version.outputs.tag }} > release_notes.txt
+          echo "notes=$(cat release_notes.txt)" >> $GITHUB_OUTPUT
+      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -78,28 +84,7 @@ jobs:
           name: Pykrieg ${{ steps.tag_version.outputs.tag }}
           draft: false
           prerelease: false
-          body: |
-            ## Pykrieg ${{ steps.tag_version.outputs.tag }}
-            
-            ### Installation
-            ```bash
-            pip install pykrieg==${{ steps.tag_version.outputs.tag }}
-            ```
-            
-            ### What's Included
-            - 20×25 board representation
-            - Territory system (North/South)
-            - Coordinate system (tuple, string, and index formats)
-            - FEN serialization format
-            - All 7 unit types supported
-            
-            ### Documentation
-            - [API Documentation](https://app.readthedocs.org/projects/pykrieg/)
-            - [GitHub Repository](https://github.com/ssjmarx/pykrieg)
-            
-            ### Testing
-            - 127 tests, 100% pass rate
-            - 100% code coverage
+          body_file: release_notes.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
