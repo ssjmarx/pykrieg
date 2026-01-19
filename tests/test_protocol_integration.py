@@ -1,6 +1,6 @@
 # Protocol integration tests
 
-from typing import Optional
+from typing import List, Optional
 
 from pykrieg.protocol.engine import UCIEngine
 from pykrieg.protocol.parser import ProtocolParser
@@ -37,7 +37,7 @@ class SimpleEngine(UCIEngine):
         self,
         position_type: str,
         value: Optional[str],
-        moves: list[str],
+        moves: List[str],
     ) -> None:
         super().position(position_type, value, moves)
         self.position_set = True
@@ -50,7 +50,7 @@ class MockFrontend:
         self.engine = engine
         self.parser = ProtocolParser()
         self.response_gen = ResponseGenerator()
-        self.output: list[str] = []
+        self.output: List[str] = []
         self.engine_ready = False
         self.game_started = False
 
