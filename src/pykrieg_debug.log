@@ -8342,3 +8342,71 @@
 2026-01-17 21:33:33 - DEBUG - About to write row_num at (y=22, x=0) with color pair 4
 2026-01-17 21:33:33 - DEBUG - Successfully wrote row_num
 2026-01-17 21:33:33 - DEBUG - get_input returned: mode compat
+2026-02-22 09:33:55 - DEBUG - Pykrieg game initialized
+2026-02-22 09:33:59 - DEBUG - get_input called with prompt: NORTH [Movement] > ...
+2026-02-22 09:33:59 - DEBUG - _render_curses called - prompt='NORTH [Movement] > ...', input_buffer=''
+2026-02-22 09:33:59 - DEBUG - Screen cleared
+2026-02-22 09:33:59 - DEBUG - Rendering game state: 2 lines
+2026-02-22 09:33:59 - DEBUG - Line 0: Turn: 1 NORTH M Moves: 0/5 (5)
+2026-02-22 09:33:59 - DEBUG - Line 1: ======================================================
+2026-02-22 09:33:59 - DEBUG - Finished rendering game state
+2026-02-22 09:33:59 - DEBUG - Rendering row 0 (0-indexed), row_letter='A', y_pos=3
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=3, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 1 (0-indexed), row_letter='B', y_pos=4
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=4, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 2 (0-indexed), row_letter='C', y_pos=5
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=5, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 3 (0-indexed), row_letter='D', y_pos=6
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=6, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 4 (0-indexed), row_letter='E', y_pos=7
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=7, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 5 (0-indexed), row_letter='F', y_pos=8
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=8, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 6 (0-indexed), row_letter='G', y_pos=9
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=9, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 7 (0-indexed), row_letter='H', y_pos=10
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=10, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 8 (0-indexed), row_letter='I', y_pos=11
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=11, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 9 (0-indexed), row_letter='J', y_pos=12
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=12, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 10 (0-indexed), row_letter='K', y_pos=13
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=13, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 11 (0-indexed), row_letter='L', y_pos=14
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=14, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 12 (0-indexed), row_letter='M', y_pos=15
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=15, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 13 (0-indexed), row_letter='N', y_pos=16
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=16, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 14 (0-indexed), row_letter='O', y_pos=17
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=17, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 15 (0-indexed), row_letter='P', y_pos=18
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=18, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 16 (0-indexed), row_letter='Q', y_pos=19
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=19, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 17 (0-indexed), row_letter='R', y_pos=20
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=20, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 18 (0-indexed), row_letter='S', y_pos=21
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=21, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
+2026-02-22 09:33:59 - DEBUG - Rendering row 19 (0-indexed), row_letter='T', y_pos=22
+2026-02-22 09:33:59 - DEBUG - About to write row_num at (y=22, x=0) with color pair 4
+2026-02-22 09:33:59 - DEBUG - Successfully wrote row_num
